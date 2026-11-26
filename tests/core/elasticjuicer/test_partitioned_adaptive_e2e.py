@@ -1,4 +1,4 @@
-"""Real Ray transport, public executor, grouped checkpoints and resume.
+"""Real Ray transport, public executor, batch checkpoints and resume.
 
 The operator injects OOMs at a row threshold and needs no physical GPU.
 """
@@ -48,7 +48,6 @@ def test_public_partitioned_run_and_checkpoint_reuse(tmp_path, monkeypatch):
         "partition": {
             "mode": "manual",
             "num_of_partitions": 4,
-            "execution_group_size": 2,
             "max_concurrent_partitions": 1,
             "gpu_preflight_enabled": False,
         },
@@ -66,21 +65,22 @@ def test_public_partitioned_run_and_checkpoint_reuse(tmp_path, monkeypatch):
         assert [row["id"] for row in actual] == list(range(36))
         assert [row["value"] for row in actual] == [i * 2 for i in range(36)]
         assert all(row["meta"]["attempts"] == 2 for row in actual)
-        assert all("__data_juicer_logical_partition_id__" not in row for row in actual)
+        assert all("__dj_ckpt_seq__" not in row and "__dj_ckpt_idx__" not in row for row in actual)
         manifest = cfg._resolved_stage_identities
         assert len({entry["stage_id"] for entry in manifest["stages"]}) == 2
-        assert cfg._resolved_execution_group_plan["execution_group_size"] == 2
 
-        def forbidden_reprocessing(*args, **kwargs):
-            raise AssertionError("Completed checkpoint rows must not run through the Mapper again")
-
-        monkeypatch.setattr(RayDataset, "process", forbidden_reprocessing)
         cfg._resume_requested = True
         executor._is_resuming = True
         ops = executor._prepare_operators()
         assert cfg._resolved_stage_identities == manifest
-        resumed = executor._process_with_simple_partitioning(executor.datasetbuilder.load_dataset(), ops)
-        assert sorted(resumed.data.take_all(), key=lambda row: row["id"]) == actual
+        restored, recovery = executor._process_with_partition_recovery(executor.datasetbuilder.load_dataset(), ops)
+        try:
+            # Every row is already committed, so no operator stage has input to run.
+            assert recovery.plan["source"] == [] and not any(recovery.plan["stages"].values())
+            assert sorted(restored.data.take_all(), key=lambda row: row["id"]) == actual
+            recovery.finish()
+        finally:
+            recovery.close()
         files = [export] if export.is_file() else list(export.rglob("*.json*"))
         exported = [json.loads(line) for path in files for line in path.read_text().splitlines() if line]
         assert sorted(row["id"] for row in exported) == list(range(36))

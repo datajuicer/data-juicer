@@ -1,6 +1,5 @@
 import threading
 from concurrent.futures import ThreadPoolExecutor
-from pathlib import Path
 from types import SimpleNamespace
 from unittest.mock import Mock, patch
 
@@ -9,11 +8,7 @@ import pytest
 from data_juicer.core.executor.dag_execution_mixin import DAGExecutionMixin
 from data_juicer.core.executor.event_logging_mixin import EventType
 from data_juicer.core.executor.pipeline_dag import DAGNodeStatus, PipelineDAG
-from data_juicer.core.executor.ray_executor_partitioned import (
-    _LOGICAL_PARTITION_COLUMN,
-    PartitionedRayExecutor,
-)
-from data_juicer.utils.ckpt_utils import CheckpointStrategy, RayCheckpointManager
+from data_juicer.core.executor.ray_executor_partitioned import PartitionedRayExecutor
 from data_juicer.utils.ray_cluster_utils import ClusterTopology
 
 
@@ -78,14 +73,13 @@ def test_partitions_are_processed_in_parallel_and_merged_in_order():
     executor.max_concurrent_partitions = 3
     executor._log_event = Mock()
     partitions = [FakeData([i]) for i in range(3)]
-    partitioning_info = SimpleNamespace(num_partitions=3, total_rows=3)
-    executor._split_dataset_deterministic = Mock(return_value=(partitions, partitioning_info))
+    executor._split_into_row_balanced_partitions = Mock(return_value=partitions)
 
     start_barrier = threading.Barrier(len(partitions), timeout=2)
     partition_finished = [threading.Event() for _ in partitions]
     completion_order = []
 
-    def process_with_checkpointing(dataset, partition_id, ops):
+    def run_partition_ops(dataset, partition_id, ops):
         start_barrier.wait()
         if partition_id < len(partitions) - 1:
             assert partition_finished[partition_id + 1].wait(timeout=2)
@@ -93,7 +87,7 @@ def test_partitions_are_processed_in_parallel_and_merged_in_order():
         partition_finished[partition_id].set()
         return dataset
 
-    executor._process_with_checkpointing = process_with_checkpointing
+    executor._run_partition_ops = run_partition_ops
 
     with patch(
         "data_juicer.core.executor.ray_executor_partitioned.RayDataset",
@@ -114,15 +108,14 @@ def test_partition_concurrency_is_bounded():
     executor.max_concurrent_partitions = 2
     executor._log_event = Mock()
     partitions = [FakeData([i]) for i in range(4)]
-    partitioning_info = SimpleNamespace(num_partitions=4, total_rows=4)
-    executor._split_dataset_deterministic = Mock(return_value=(partitions, partitioning_info))
+    executor._split_into_row_balanced_partitions = Mock(return_value=partitions)
 
     active_partitions = 0
     max_active_partitions = 0
     active_lock = threading.Lock()
     pair_barrier = threading.Barrier(executor.max_concurrent_partitions, timeout=2)
 
-    def process_with_checkpointing(dataset, partition_id, ops):
+    def run_partition_ops(dataset, partition_id, ops):
         nonlocal active_partitions, max_active_partitions
         with active_lock:
             active_partitions += 1
@@ -132,7 +125,7 @@ def test_partition_concurrency_is_bounded():
             active_partitions -= 1
         return dataset
 
-    executor._process_with_checkpointing = process_with_checkpointing
+    executor._run_partition_ops = run_partition_ops
 
     with patch(
         "data_juicer.core.executor.ray_executor_partitioned.RayDataset",
@@ -150,8 +143,7 @@ def test_concurrent_partitions_use_isolated_operator_instances():
     executor.max_concurrent_partitions = 3
     executor._log_event = Mock()
     partitions = [FakeData([i]) for i in range(3)]
-    partitioning_info = SimpleNamespace(num_partitions=3, total_rows=3)
-    executor._split_dataset_deterministic = Mock(return_value=(partitions, partitioning_info))
+    executor._split_into_row_balanced_partitions = Mock(return_value=partitions)
     original_op = FakeOp("mutable", 1)
     original_op.partition_marker = None
 
@@ -159,7 +151,7 @@ def test_concurrent_partitions_use_isolated_operator_instances():
     observations = {}
     observations_lock = threading.Lock()
 
-    def process_with_checkpointing(dataset, partition_id, ops):
+    def run_partition_ops(dataset, partition_id, ops):
         partition_op = ops[0]
         partition_op.partition_marker = partition_id
         start_barrier.wait()
@@ -167,7 +159,7 @@ def test_concurrent_partitions_use_isolated_operator_instances():
             observations[partition_id] = (id(partition_op), partition_op.partition_marker)
         return dataset
 
-    executor._process_with_checkpointing = process_with_checkpointing
+    executor._run_partition_ops = run_partition_ops
 
     with patch(
         "data_juicer.core.executor.ray_executor_partitioned.RayDataset",
@@ -191,9 +183,8 @@ def test_partition_failure_is_logged_and_propagated():
     executor._log_event = Mock()
     executor.log_partition_failed = Mock()
     partitions = [FakeData([0])]
-    partitioning_info = SimpleNamespace(num_partitions=1, total_rows=1)
-    executor._split_dataset_deterministic = Mock(return_value=(partitions, partitioning_info))
-    executor._process_with_checkpointing = Mock(side_effect=RuntimeError("partition failed"))
+    executor._split_into_row_balanced_partitions = Mock(return_value=partitions)
+    executor._run_partition_ops = Mock(side_effect=RuntimeError("partition failed"))
 
     with (
         patch(
@@ -393,75 +384,6 @@ def test_throughput_actor_plan_fails_before_oversubscribing_one_gpu():
         executor._configure_throughput_aware_gpu_parallelism(ops, total_samples=100)
 
 
-def test_execution_group_runs_once_and_keeps_partition_scoped_checkpoints():
-    class Schema:
-        names = [_LOGICAL_PARTITION_COLUMN, "value"]
-
-    class GroupedData:
-        def __init__(self, rows):
-            self.rows = rows
-
-        def count(self):
-            return len(self.rows)
-
-        def materialize(self):
-            return self
-
-        def schema(self):
-            return Schema()
-
-        def filter(self, function, fn_kwargs):
-            return GroupedData([row for row in self.rows if function(row, **fn_kwargs)])
-
-        def drop_columns(self, columns):
-            return GroupedData([{key: value for key, value in row.items() if key not in columns} for row in self.rows])
-
-    class GroupedRayDataset:
-        process_calls = 0
-
-        def __init__(self, data):
-            self.data = data
-
-        def process(self, ops):
-            type(self).process_calls += 1
-            return GroupedRayDataset(
-                GroupedData([{**row, "value": row["value"] + 1} for row in self.data.rows])
-            )
-
-    saved = {}
-
-    def save_checkpoint(dataset, op_idx, op_name, partition_id, cfg):
-        saved[partition_id] = dataset.data.rows
-
-    manager = SimpleNamespace(
-        checkpoint_enabled=True,
-        group_operations_for_checkpointing=lambda ops: [(0, 1, ops)],
-        should_checkpoint=lambda op_idx, op_name: True,
-        save_checkpoint=save_checkpoint,
-    )
-    executor = PartitionedRayExecutor.__new__(PartitionedRayExecutor)
-    executor.cfg = {}
-    executor.pipeline_dag = None
-    executor.ckpt_manager = manager
-    executor._wrap_with_precomputed_parallelism = lambda data: GroupedRayDataset(data)
-    data = GroupedData(
-        [
-            {_LOGICAL_PARTITION_COLUMN: 0, "value": 10},
-            {_LOGICAL_PARTITION_COLUMN: 1, "value": 20},
-        ]
-    )
-
-    result = executor._process_execution_group_with_checkpointing(
-        GroupedRayDataset(data),
-        [0, 1],
-        [SimpleNamespace(_name="gpu_mapper")],
-    )
-
-    assert GroupedRayDataset.process_calls == 1
-    assert saved == {0: [{"value": 11}], 1: [{"value": 21}]}
-    assert result.data.rows == [{"value": 11}, {"value": 21}]
-
-
 def test_auto_partition_concurrency_falls_back_to_one_when_ray_inspection_fails():
     executor = PartitionedRayExecutor.__new__(PartitionedRayExecutor)
     executor.max_concurrent_partitions = "auto"
@@ -524,8 +446,7 @@ def test_operator_parallelism_is_restored_after_partition_processing():
     executor.max_concurrent_partitions = 4
     executor._log_event = Mock()
     partitions = [FakeData([i]) for i in range(4)]
-    partitioning_info = SimpleNamespace(num_partitions=4, total_rows=4)
-    executor._split_dataset_deterministic = Mock(return_value=(partitions, partitioning_info))
+    executor._split_into_row_balanced_partitions = Mock(return_value=partitions)
     auto_op = FakeOp("auto", 8)
     explicit_op = FakeOp("explicit", 4, auto=False)
     executor._auto_parallel_op_ids = {id(auto_op)}
@@ -533,13 +454,13 @@ def test_operator_parallelism_is_restored_after_partition_processing():
     observed_concurrency = []
     start_barrier = threading.Barrier(len(partitions), timeout=2)
 
-    def process_with_checkpointing(dataset, partition_id, ops):
+    def run_partition_ops(dataset, partition_id, ops):
         assert dataset._auto_proc is False
         observed_concurrency.append((ops[0].num_proc, ops[1].num_proc))
         start_barrier.wait()
         return dataset
 
-    executor._process_with_checkpointing = process_with_checkpointing
+    executor._run_partition_ops = run_partition_ops
 
     with patch(
         "data_juicer.core.executor.ray_executor_partitioned.RayDataset",
@@ -563,11 +484,10 @@ def test_operator_parallelism_is_restored_after_partition_failure():
     executor._log_event = Mock()
     executor.log_partition_failed = Mock()
     partitions = [FakeData([0]), FakeData([1])]
-    partitioning_info = SimpleNamespace(num_partitions=2, total_rows=2)
-    executor._split_dataset_deterministic = Mock(return_value=(partitions, partitioning_info))
+    executor._split_into_row_balanced_partitions = Mock(return_value=partitions)
     auto_op = FakeOp("auto", 4)
     executor._auto_parallel_op_ids = {id(auto_op)}
-    executor._process_with_checkpointing = Mock(side_effect=RuntimeError("partition failed"))
+    executor._run_partition_ops = Mock(side_effect=RuntimeError("partition failed"))
 
     with (
         patch(
@@ -588,8 +508,7 @@ def test_partition_template_stays_scaled_after_sibling_failure():
     executor._log_event = Mock()
     executor.log_partition_failed = Mock()
     partitions = [FakeData([0]), FakeData([1])]
-    partitioning_info = SimpleNamespace(num_partitions=2, total_rows=2)
-    executor._split_dataset_deterministic = Mock(return_value=(partitions, partitioning_info))
+    executor._split_into_row_balanced_partitions = Mock(return_value=partitions)
     auto_op = FakeOp("auto", 4)
     executor._auto_parallel_op_ids = {id(auto_op)}
 
@@ -597,7 +516,7 @@ def test_partition_template_stays_scaled_after_sibling_failure():
     failure_announced = threading.Event()
     sibling_observation = []
 
-    def process_with_checkpointing(dataset, partition_id, ops):
+    def run_partition_ops(dataset, partition_id, ops):
         start_barrier.wait()
         if partition_id == 0:
             failure_announced.set()
@@ -607,7 +526,7 @@ def test_partition_template_stays_scaled_after_sibling_failure():
         sibling_observation.append((ops[0].num_proc, auto_op.num_proc))
         return dataset
 
-    executor._process_with_checkpointing = process_with_checkpointing
+    executor._run_partition_ops = run_partition_ops
 
     with (
         patch(
@@ -630,8 +549,7 @@ def test_explicit_actor_budget_limits_partition_concurrency():
     executor.max_concurrent_partitions = 4
     executor._log_event = Mock()
     partitions = [FakeData([i]) for i in range(4)]
-    partitioning_info = SimpleNamespace(num_partitions=4, total_rows=4)
-    executor._split_dataset_deterministic = Mock(return_value=(partitions, partitioning_info))
+    executor._split_into_row_balanced_partitions = Mock(return_value=partitions)
     explicit_op = FakeOp("explicit", 2, auto=False)
     executor._auto_parallel_op_ids = set()
     executor._explicit_actor_op_ids = {id(explicit_op)}
@@ -642,7 +560,7 @@ def test_explicit_actor_budget_limits_partition_concurrency():
     pair_barrier = threading.Barrier(2, timeout=2)
     observed_concurrency = []
 
-    def process_with_checkpointing(dataset, partition_id, ops):
+    def run_partition_ops(dataset, partition_id, ops):
         nonlocal active_partitions, max_active_partitions
         with active_lock:
             active_partitions += 1
@@ -653,7 +571,7 @@ def test_explicit_actor_budget_limits_partition_concurrency():
             active_partitions -= 1
         return dataset
 
-    executor._process_with_checkpointing = process_with_checkpointing
+    executor._run_partition_ops = run_partition_ops
 
     with patch(
         "data_juicer.core.executor.ray_executor_partitioned.RayDataset",
@@ -683,41 +601,6 @@ def test_explicit_task_concurrency_is_not_partition_scaled():
     assert executor._limit_partition_workers_for_explicit_actors([explicit_task], 8) == 8
     assert executor._scale_operator_parallelism([explicit_task], 8) == []
     assert explicit_task.num_proc == 4
-
-
-def test_checkpoint_paths_remain_partition_scoped_under_concurrency(tmp_path):
-    manager = RayCheckpointManager(
-        ckpt_dir=str(tmp_path),
-        checkpoint_strategy=CheckpointStrategy.EVERY_OP,
-    )
-    write_barrier = threading.Barrier(4, timeout=2)
-
-    class ConcurrentCheckpointData:
-        def __init__(self, partition_id):
-            self.partition_id = partition_id
-
-        def write_parquet(self, checkpoint_path):
-            write_barrier.wait()
-            path = Path(checkpoint_path)
-            path.mkdir(parents=True, exist_ok=True)
-            (path / "partition.txt").write_text(str(self.partition_id))
-
-    with ThreadPoolExecutor(max_workers=4) as pool:
-        futures = [
-            pool.submit(
-                manager.save_checkpoint,
-                ConcurrentCheckpointData(partition_id),
-                0,
-                "mapper",
-                partition_id,
-            )
-            for partition_id in range(4)
-        ]
-        checkpoint_paths = [future.result() for future in futures]
-
-    assert len(set(checkpoint_paths)) == 4
-    for partition_id, checkpoint_path in enumerate(checkpoint_paths):
-        assert Path(checkpoint_path, "partition.txt").read_text() == str(partition_id)
 
 
 def test_concurrent_dag_monitoring_tracks_current_node_per_partition(tmp_path):

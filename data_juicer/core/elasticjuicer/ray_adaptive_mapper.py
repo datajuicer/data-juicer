@@ -23,9 +23,6 @@ from .stage_profile import (
     validate_prior,
 )
 
-# PR1054 execution-group routing column; avoid importing the executor here.
-_PARTITION_COLUMN = "__data_juicer_logical_partition_id__"
-
 
 def adaptive_batching_enabled(op, enabled=False):
     """Validate an opted-in, row-preserving, slice-independent GPU Mapper."""
@@ -234,19 +231,9 @@ class RayAdaptiveMapperActor:
     def _process_slice(self, batch):
         if isinstance(batch, pa.Table):
             batch = batch.to_pydict()
-        tags = list(batch[_PARTITION_COLUMN]) if _PARTITION_COLUMN in batch else None
         # Bypass Mapper's generic skip wrapper so OOM reaches the controller.
         output = self.op.process_batched(batch)
-        if isinstance(output, pa.Table):
-            output = output.to_pydict()
-        if tags is not None:
-            if (
-                not isinstance(output, dict)
-                or _PARTITION_COLUMN not in output
-                or list(output[_PARTITION_COLUMN]) != tags
-            ):
-                raise AdaptiveBatchContractError(f"{self.stage_id}: mapper changed logical partition tags")
-        return output
+        return output.to_pydict() if isinstance(output, pa.Table) else output
 
     def __call__(self, batch):
         self._observations = None

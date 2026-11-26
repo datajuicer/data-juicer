@@ -13,7 +13,7 @@ microbatch wrapper and stage identity code are adapted from ElasticJuicer
 | Stable stage identities | Stamp the complete prepared recipe before probing and checkpoint slicing. Distinguish repeated operators, preserve stamps through partition copies and exclude the per-run work directory. |
 | Adaptive microbatch controller | Keep bounded success/OOM state inside each actor. Shrink after OOM and cautiously grow below known failing sizes. |
 | Lossless OOM retry wrapper | Retry the same input offset, isolate failed input mutations, validate output row counts and merge successful slices in order. |
-| Ray adapter | Select the adapter only for explicitly opted-in CUDA Mappers. Keep PR1054's outer batch size, ActorPool strategy, CPU/GPU reservations, execution groups and logical checkpoints. |
+| Ray adapter | Select the adapter only for explicitly opted-in CUDA Mappers. Keep the outer batch size, ActorPool strategy, CPU/GPU reservations and checkpoint commits of `ray_partitioned`. |
 
 Optional job-scoped batch-profile reuse is described in
 [ElasticJuicerStageProfile.md](ElasticJuicerStageProfile.md). With its switch
@@ -45,8 +45,8 @@ not a newly bundled operator. An operator author can instead declare
 contract below. A recipe's `adaptive_batching: false` overrides that class
 declaration. No built-in model operator is enabled by default in this patch.
 
-The ordinary `ray` executor can use the adapter too. Partition grouping and
-checkpoint guarantees belong to `ray_partitioned`.
+The ordinary `ray` executor can use the adapter too. Checkpoint guarantees
+belong to `ray_partitioned`.
 
 ## Operator contract and error handling
 
@@ -56,12 +56,10 @@ An opted-in operator must:
    per actor and a positive integer `batch_size`.
 2. Preserve row count and row order, and return compatible columns across
    slices. Its result must be independent of how the outer batch is sliced.
-3. Preserve PR1054's internal logical-partition tag exactly. The adapter checks
-   this tag before accepting each slice.
-4. Be safe to retry. Failed calls must not leave external writes or model state
+3. Be safe to retry. Failed calls must not leave external writes or model state
    that changes the result of the retry. Copying inputs protects nested input
    mutations; it cannot undo file/database writes or arbitrary model state.
-5. Let allocation OOM exceptions escape `process_batched`. Operator-internal
+4. Let allocation OOM exceptions escape `process_batched`. Operator-internal
    broad exception handlers that hide OOMs must be fixed before opting in.
 
 CPU operators, Filters, reducers/deduplicators, multi-GPU actors, operator fusion
@@ -136,7 +134,7 @@ python -m pytest -q tests/core/elasticjuicer \
 
 The end-to-end test starts an isolated real Ray cluster with a logical GPU
 resource and a CPU-safe threshold Mapper that injects OOMs. It exercises public
-partitioned execution, two repeated Mappers, grouped logical checkpoints,
+partitioned execution, two repeated Mappers, checkpoint commits,
 checkpoint reuse and exported row IDs. It does not measure physical GPU memory
 limits or throughput.
 

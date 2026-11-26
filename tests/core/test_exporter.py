@@ -503,6 +503,24 @@ class CoreExporterFileTest(DataJuicerTestCaseBase):
         self.assertEqual(fixed[0][self.Fields.meta], "not-json")
         self.assertEqual(fixed[0][self.Fields.stats], "also-not-json")
 
+    def test_structured_meta_stats_do_not_need_a_map(self):
+        ds = Dataset.from_dict({
+            self.Fields.meta: [{"source": "训练", "tag": '{"keep":"string"}'}, None],
+            self.Fields.stats: [{"score": 1}, {"score": 2}],
+        }).select([1, 0, 1])
+        self.assertIs(self.Exporter._ensure_meta_stats_dicts_for_export(ds), ds)
+
+    def test_only_string_column_is_restored_with_structured_stats(self):
+        ds = Dataset.from_dict({
+            self.Fields.meta: ['{"source":"训练"}', '{"source":"web"}'],
+            self.Fields.stats: [{"score": 1}, {"score": 2}],
+        })
+        fixed = self.Exporter._ensure_meta_stats_dicts_for_export(ds)
+        self.assertEqual(fixed.to_list(), [
+            {self.Fields.meta: {"source": "训练"}, self.Fields.stats: {"score": 1}},
+            {self.Fields.meta: {"source": "web"}, self.Fields.stats: {"score": 2}},
+        ])
+
     def test_meta_stats_restore_is_noop_without_columns(self):
         ds = Dataset.from_list([{"text": "plain"}])
 

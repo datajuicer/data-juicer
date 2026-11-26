@@ -486,6 +486,11 @@
     <span class="k">if</span> <span class="n">sample_number</span> <span class="o">==</span> <span class="n">ds_samples</span><span class="p">:</span>
         <span class="k">return</span> <span class="n">dataset</span>
 
+    <span class="k">if</span> <span class="mi">0</span> <span class="o">&lt;</span> <span class="n">ds_samples</span> <span class="o">&lt;</span> <span class="n">sample_number</span> <span class="o">&lt;=</span> <span class="mi">2</span> <span class="o">*</span> <span class="n">ds_samples</span><span class="p">:</span>
+        <span class="c1"># Compose a full seeded cycle and the partial second cycle directly.</span>
+        <span class="n">permutation</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">default_rng</span><span class="p">(</span><span class="n">seed</span><span class="p">)</span><span class="o">.</span><span class="n">permutation</span><span class="p">(</span><span class="n">ds_samples</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">dataset</span><span class="o">.</span><span class="n">select</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">resize</span><span class="p">(</span><span class="n">permutation</span><span class="p">,</span> <span class="n">sample_number</span><span class="p">))</span>
+
     <span class="c1"># When sampling more samples than the dataset size, repeat the dataset</span>
     <span class="k">if</span> <span class="n">sample_number</span> <span class="o">&gt;</span> <span class="n">ds_samples</span><span class="p">:</span>
         <span class="n">sample_index</span> <span class="o">=</span> <span class="nb">range</span><span class="p">(</span><span class="n">sample_number</span><span class="p">)</span>

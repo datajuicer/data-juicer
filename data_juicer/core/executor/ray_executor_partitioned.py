@@ -306,7 +306,9 @@ class PartitionedRayExecutor(ExecutorBase, DAGExecutionMixin, EventLoggingMixin)
             event_logger=self,
         )
         if self.ckpt_manager.checkpoint_enabled:
-            from data_juicer.core.data.ray_checkpoint_adapter import validate_checkpoint_adapter
+            from data_juicer.core.data.ray_checkpoint_adapter import (
+                validate_checkpoint_adapter,
+            )
 
             validate_checkpoint_adapter()
 

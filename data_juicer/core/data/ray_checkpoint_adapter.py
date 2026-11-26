@@ -14,8 +14,13 @@ from functools import partial
 import pyarrow as pa
 import ray
 from ray.data._internal.execution.interfaces import RefBundle
-from ray.data._internal.execution.interfaces.physical_operator import MetadataOpTask, PhysicalOperator
-from ray.data._internal.execution.operators.base_physical_operator import OneToOneOperator
+from ray.data._internal.execution.interfaces.physical_operator import (
+    MetadataOpTask,
+    PhysicalOperator,
+)
+from ray.data._internal.execution.operators.base_physical_operator import (
+    OneToOneOperator,
+)
 from ray.data._internal.logical.interfaces import LogicalOperator, LogicalPlan
 from ray.data._internal.planner.planner import Planner
 from ray.data.block import BlockMetadata

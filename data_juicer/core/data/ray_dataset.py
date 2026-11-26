@@ -211,7 +211,10 @@ class RayDataset(DJDataset):
         resident_gpu_specs = []
         resident_gpu_counts = []
         if checkpointer:
-            from data_juicer.utils.ray_cluster_utils import detect_cluster_topology, gpu_actor_requests_fit
+            from data_juicer.utils.ray_cluster_utils import (
+                detect_cluster_topology,
+                gpu_actor_requests_fit,
+            )
 
             topology = detect_cluster_topology()
 

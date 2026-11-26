@@ -6,6 +6,40 @@ from unittest.mock import MagicMock, patch
 from data_juicer.utils.unittest_utils import TEST_TAG, DataJuicerTestCaseBase
 
 
+class RayKeyValueGrouperTest(DataJuicerTestCaseBase):
+
+    @TEST_TAG("ray")
+    def test_groups_across_blocks_with_nested_and_multiple_keys(self):
+        import pyarrow
+        import ray
+
+        from data_juicer.core.data import NestedDataset
+        from data_juicer.core.data.ray_dataset import RayDataset
+        from data_juicer.ops.base_op import convert_dict_list_to_list_dict
+        from data_juicer.ops.grouper.key_value_grouper import KeyValueGrouper
+
+        samples = [
+            {"text": "one", "meta": {"language": "en"}, "source": "a", "group_key": "keep 1"},
+            {"text": "two", "meta": {"language": None}, "source": "a", "group_key": "keep 2"},
+            {"text": "three", "meta": {"language": "en"}, "source": "a", "group_key": "keep 3"},
+            {"text": "four", "meta": {"language": "en"}, "source": "b", "group_key": "keep 4"},
+        ]
+        table = pyarrow.Table.from_pylist(samples)
+        ray_data = ray.data.from_arrow([table.slice(i, 1) for i in range(len(samples))])
+        dataset = RayDataset(ray_data, auto_op_parallelism=False)
+        op = KeyValueGrouper(group_by_keys=["meta.language", "source"])
+
+        expected = op.process(NestedDataset.from_list(samples))
+        actual = dataset.process(op).data.take_all()
+
+        def normalize(groups):
+            rows = [sorted(convert_dict_list_to_list_dict(group), key=lambda row: row["text"]) for group in groups]
+            return sorted(rows, key=lambda group: group[0]["text"])
+
+        self.assertEqual(len(actual), 3)
+        self.assertEqual(normalize(actual), normalize(expected))
+
+
 class RayDatasetFuncsTest(DataJuicerTestCaseBase):
 
     def setUp(self):

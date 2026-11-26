@@ -771,17 +771,39 @@
             <span class="n">text</span> <span class="o">=</span> <span class="n">pat</span><span class="o">.</span><span class="n">sub</span><span class="p">(</span><span class="n">repl</span><span class="p">,</span> <span class="n">text</span><span class="p">)</span>
         <span class="k">return</span> <span class="n">text</span>
 
+    <span class="k">def</span><span class="w"> </span><span class="nf">_names_secret_or_id</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">pattern</span><span class="p">,</span> <span class="n">key</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">"""Whether ``key=x`` would have x redacted as a whole by secret_kv or id_kv."""</span>
+        <span class="n">probe</span> <span class="o">=</span> <span class="n">key</span> <span class="o">+</span> <span class="s2">"=x"</span>
+        <span class="n">match</span> <span class="o">=</span> <span class="n">pattern</span><span class="o">.</span><span class="n">search</span><span class="p">(</span><span class="n">probe</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">match</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="n">match</span><span class="o">.</span><span class="n">end</span><span class="p">()</span> <span class="o">==</span> <span class="nb">len</span><span class="p">(</span><span class="n">probe</span><span class="p">)</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">_redact_entry</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">key</span><span class="p">:</span> <span class="n">Any</span><span class="p">,</span> <span class="n">value</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">"""Redact a string value of a dict.</span>
+
+<span class="sd">        In a JSON string such as ``{"password": "x"}`` the secret and ID patterns</span>
+<span class="sd">        see the key next to its value. A dict value has no key in its text, so the</span>
+<span class="sd">        key is checked on its own and the whole value is replaced when the key</span>
+<span class="sd">        names a secret or an ID.</span>
+<span class="sd">        """</span>
+        <span class="k">if</span> <span class="n">value</span> <span class="ow">and</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">key</span><span class="p">,</span> <span class="nb">str</span><span class="p">):</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">mask_secrets</span> <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">_names_secret_or_id</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_secret_kv</span><span class="p">,</span> <span class="n">key</span><span class="p">):</span>
+                <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">secret_replacement</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">mask_ids</span> <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">_names_secret_or_id</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_id_kv</span><span class="p">,</span> <span class="n">key</span><span class="p">):</span>
+                <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">id_replacement</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_redact_text</span><span class="p">(</span><span class="n">value</span><span class="p">)</span>
+
     <span class="k">def</span><span class="w"> </span><span class="nf">_redact_value</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">val</span><span class="p">:</span> <span class="n">Any</span><span class="p">,</span> <span class="n">redact_strings</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
 <span class="w">        </span><span class="sd">"""Recursively redact PII in dict/list; in-place. For str, use _redact_text.</span>
 
-<span class="sd">        Strings in a list are redacted when the list is anywhere below a</span>
-<span class="sd">        PII_VALUE_KEYS key or ``redact_strings`` is set. Other list strings,</span>
-<span class="sd">        such as media paths, are left alone.</span>
+<span class="sd">        Strings in lists and dicts are redacted when they are anywhere below a</span>
+<span class="sd">        PII_VALUE_KEYS key (such as tool call ``arguments``) or ``redact_strings``</span>
+<span class="sd">        is set. Other strings, such as media paths in ``images``, are left alone.</span>
 <span class="sd">        """</span>
         <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">val</span><span class="p">,</span> <span class="nb">dict</span><span class="p">):</span>
             <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">v</span> <span class="ow">in</span> <span class="nb">list</span><span class="p">(</span><span class="n">val</span><span class="o">.</span><span class="n">items</span><span class="p">()):</span>
-                <span class="k">if</span> <span class="n">k</span> <span class="ow">in</span> <span class="n">PII_VALUE_KEYS</span> <span class="ow">and</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">v</span><span class="p">,</span> <span class="nb">str</span><span class="p">):</span>
-                    <span class="n">val</span><span class="p">[</span><span class="n">k</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_redact_text</span><span class="p">(</span><span class="n">v</span><span class="p">)</span>
+                <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">v</span><span class="p">,</span> <span class="nb">str</span><span class="p">):</span>
+                    <span class="k">if</span> <span class="n">redact_strings</span> <span class="ow">or</span> <span class="n">k</span> <span class="ow">in</span> <span class="n">PII_VALUE_KEYS</span><span class="p">:</span>
+                        <span class="n">val</span><span class="p">[</span><span class="n">k</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_redact_entry</span><span class="p">(</span><span class="n">k</span><span class="p">,</span> <span class="n">v</span><span class="p">)</span>
                 <span class="k">else</span><span class="p">:</span>
                     <span class="bp">self</span><span class="o">.</span><span class="n">_redact_value</span><span class="p">(</span><span class="n">v</span><span class="p">,</span> <span class="n">redact_strings</span> <span class="ow">or</span> <span class="n">k</span> <span class="ow">in</span> <span class="n">PII_VALUE_KEYS</span><span class="p">)</span>
         <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">val</span><span class="p">,</span> <span class="nb">list</span><span class="p">):</span>
@@ -791,6 +813,27 @@
                         <span class="n">val</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_redact_text</span><span class="p">(</span><span class="n">item</span><span class="p">)</span>
                 <span class="k">else</span><span class="p">:</span>
                     <span class="bp">self</span><span class="o">.</span><span class="n">_redact_value</span><span class="p">(</span><span class="n">item</span><span class="p">,</span> <span class="n">redact_strings</span><span class="p">)</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">_redact_content_blocks</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">blocks</span><span class="p">:</span> <span class="nb">list</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">"""In-place redact a list of content blocks.</span>
+
+<span class="sd">        Covers text blocks, the ``input`` of tool_use blocks and the nested</span>
+<span class="sd">        ``content`` list of tool_result blocks.</span>
+<span class="sd">        """</span>
+        <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">block</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">blocks</span><span class="p">):</span>
+            <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">block</span><span class="p">,</span> <span class="nb">dict</span><span class="p">):</span>
+                <span class="k">for</span> <span class="n">k</span> <span class="ow">in</span> <span class="p">(</span><span class="s2">"text"</span><span class="p">,</span> <span class="s2">"content"</span><span class="p">):</span>
+                    <span class="k">if</span> <span class="n">k</span> <span class="ow">in</span> <span class="n">block</span> <span class="ow">and</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">block</span><span class="p">[</span><span class="n">k</span><span class="p">],</span> <span class="nb">str</span><span class="p">):</span>
+                        <span class="n">block</span><span class="p">[</span><span class="n">k</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_redact_text</span><span class="p">(</span><span class="n">block</span><span class="p">[</span><span class="n">k</span><span class="p">])</span>
+                <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">block</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"content"</span><span class="p">),</span> <span class="nb">list</span><span class="p">):</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">_redact_content_blocks</span><span class="p">(</span><span class="n">block</span><span class="p">[</span><span class="s2">"content"</span><span class="p">])</span>
+                <span class="n">tool_input</span> <span class="o">=</span> <span class="n">block</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"input"</span><span class="p">)</span>
+                <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">tool_input</span><span class="p">,</span> <span class="nb">str</span><span class="p">):</span>
+                    <span class="n">block</span><span class="p">[</span><span class="s2">"input"</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_redact_text</span><span class="p">(</span><span class="n">tool_input</span><span class="p">)</span>
+                <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">tool_input</span><span class="p">,</span> <span class="p">(</span><span class="nb">dict</span><span class="p">,</span> <span class="nb">list</span><span class="p">)):</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">_redact_value</span><span class="p">(</span><span class="n">tool_input</span><span class="p">,</span> <span class="n">redact_strings</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+            <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">block</span><span class="p">,</span> <span class="nb">str</span><span class="p">):</span>
+                <span class="n">blocks</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_redact_text</span><span class="p">(</span><span class="n">block</span><span class="p">)</span>
 
     <span class="k">def</span><span class="w"> </span><span class="nf">_redact_messages</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">messages</span><span class="p">:</span> <span class="n">Any</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
 <span class="w">        </span><span class="sd">"""In-place redact all string content inside messages (list of msg)."""</span>
@@ -804,13 +847,7 @@
                 <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">content</span><span class="p">,</span> <span class="nb">str</span><span class="p">):</span>
                     <span class="n">msg</span><span class="p">[</span><span class="s2">"content"</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_redact_text</span><span class="p">(</span><span class="n">content</span><span class="p">)</span>
                 <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">content</span><span class="p">,</span> <span class="nb">list</span><span class="p">):</span>
-                    <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">block</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">content</span><span class="p">):</span>
-                        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">block</span><span class="p">,</span> <span class="nb">dict</span><span class="p">):</span>
-                            <span class="k">for</span> <span class="n">k</span> <span class="ow">in</span> <span class="p">(</span><span class="s2">"text"</span><span class="p">,</span> <span class="s2">"content"</span><span class="p">):</span>
-                                <span class="k">if</span> <span class="n">k</span> <span class="ow">in</span> <span class="n">block</span> <span class="ow">and</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">block</span><span class="p">[</span><span class="n">k</span><span class="p">],</span> <span class="nb">str</span><span class="p">):</span>
-                                    <span class="n">block</span><span class="p">[</span><span class="n">k</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_redact_text</span><span class="p">(</span><span class="n">block</span><span class="p">[</span><span class="n">k</span><span class="p">])</span>
-                        <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">block</span><span class="p">,</span> <span class="nb">str</span><span class="p">):</span>
-                            <span class="n">content</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_redact_text</span><span class="p">(</span><span class="n">block</span><span class="p">)</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">_redact_content_blocks</span><span class="p">(</span><span class="n">content</span><span class="p">)</span>
             <span class="c1"># Redact tool_calls / tool_use (e.g. function.arguments with path/email)</span>
             <span class="k">for</span> <span class="n">key</span> <span class="ow">in</span> <span class="p">(</span><span class="s2">"tool_calls"</span><span class="p">,</span> <span class="s2">"tool_use"</span><span class="p">):</span>
                 <span class="n">calls</span> <span class="o">=</span> <span class="n">msg</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">key</span><span class="p">)</span>
@@ -825,13 +862,13 @@
                         <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">args</span><span class="p">,</span> <span class="nb">str</span><span class="p">):</span>
                             <span class="n">fn</span><span class="p">[</span><span class="s2">"arguments"</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_redact_text</span><span class="p">(</span><span class="n">args</span><span class="p">)</span>
                         <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">args</span><span class="p">,</span> <span class="nb">dict</span><span class="p">):</span>
-                            <span class="bp">self</span><span class="o">.</span><span class="n">_redact_value</span><span class="p">(</span><span class="n">args</span><span class="p">)</span>
+                            <span class="bp">self</span><span class="o">.</span><span class="n">_redact_value</span><span class="p">(</span><span class="n">args</span><span class="p">,</span> <span class="n">redact_strings</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
                     <span class="c1"># Some formats put arguments at top level of call</span>
                     <span class="n">args</span> <span class="o">=</span> <span class="n">call</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"arguments"</span><span class="p">)</span>
                     <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">args</span><span class="p">,</span> <span class="nb">str</span><span class="p">):</span>
                         <span class="n">call</span><span class="p">[</span><span class="s2">"arguments"</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_redact_text</span><span class="p">(</span><span class="n">args</span><span class="p">)</span>
                     <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">args</span><span class="p">,</span> <span class="nb">dict</span><span class="p">):</span>
-                        <span class="bp">self</span><span class="o">.</span><span class="n">_redact_value</span><span class="p">(</span><span class="n">args</span><span class="p">)</span>
+                        <span class="bp">self</span><span class="o">.</span><span class="n">_redact_value</span><span class="p">(</span><span class="n">args</span><span class="p">,</span> <span class="n">redact_strings</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
 
 <div class="viewcode-block" id="PiiRedactionMapper.process_single">
 <a class="viewcode-back" href="../../../../api/data_juicer.ops.mapper.html#data_juicer.ops.mapper.PiiRedactionMapper.process_single">[文档]</a>

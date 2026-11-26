@@ -4,7 +4,7 @@ from data_juicer.core.data import NestedDataset as Dataset
 
 from data_juicer.ops.filter.average_line_length_filter import \
     AverageLineLengthFilter
-from data_juicer.utils.constant import Fields, InterVars
+from data_juicer.utils.constant import Fields, InterVars, StatsKeys
 from data_juicer.utils.unittest_utils import DataJuicerTestCaseBase
 
 
@@ -58,6 +58,19 @@ class AverageLineLengthFilterTest(DataJuicerTestCaseBase):
         op = AverageLineLengthFilter(min_len=10, max_len=20, batch_size=3)
         self._run_average_line_length_filter(dataset, self.tgt_list, op, context=False)
 
+    def test_standalone_stats_match_splitlines(self):
+        texts = [
+            "", "\n", "\r\n", "alpha\n\nbeta\n", "alpha\rbeta",
+            "alpha\r\nbeta\n", "\r\r\n", "a\vb\fc\x1cd\x1de\x1ef",
+            "中文\x85é\u2028字\u2029", "single line",
+        ]
+        samples = {"text": texts, Fields.stats: [{} for _ in texts]}
+        AverageLineLengthFilter().compute_stats_batched(samples)
+        expected = [len(text) / len(text.splitlines()) if text else 0.0 for text in texts]
+        self.assertEqual(
+            [stat[StatsKeys.avg_line_length] for stat in samples[Fields.stats]], expected
+        )
+
     def test_case_context(self):
         dataset = Dataset.from_list(self.ds_list)
         op = AverageLineLengthFilter(min_len=10, max_len=20, batch_size=2)
@@ -75,6 +88,18 @@ class AverageLineLengthFilterTest(DataJuicerTestCaseBase):
         ]
 
         self.assertEqual(res_list, tgt_context_list)
+
+    def test_reuses_fused_context_lines(self):
+        key = f"{InterVars.lines}-{self.text_key}"
+        lines = ["already", "split"]
+        sample = {
+            self.text_key: ["abcdefgh"],
+            Fields.stats: [{}],
+            Fields.context: [{key: lines}],
+        }
+        AverageLineLengthFilter().compute_stats_batched(sample, context=True)
+        self.assertEqual(sample[Fields.stats][0][StatsKeys.avg_line_length], 4.0)
+        self.assertIs(sample[Fields.context][0][key], lines)
 
 
 if __name__ == '__main__':

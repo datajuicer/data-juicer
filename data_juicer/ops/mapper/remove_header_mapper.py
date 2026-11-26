@@ -43,6 +43,13 @@ class RemoveHeaderMapper(Mapper):
 
     def process_batched(self, samples):
         for idx, text in enumerate(samples[self.text_key]):
+            # Every alternative in the header pattern starts with a literal
+            # backslash, so a text without one cannot hold a header and the
+            # expensive DOTALL search can be skipped.
+            if "\\" not in text:
+                if self.drop_no_head:
+                    samples[self.text_key][idx] = ""
+                continue
             if not re.search(self.pattern, text, flags=re.DOTALL):
                 if self.drop_no_head:
                     samples[self.text_key][idx] = ""

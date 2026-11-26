@@ -222,6 +222,7 @@ All the specific operators are listed below, each featured with several capabili
 | extract_entity_attribute_mapper | 🔤Text 💻CPU 🔗API 🟢Stable | Extracts attributes for given entities from the text and stores them in the sample's metadata. 从文本中提取给定实体的属性，并将其存储在示例的元数据中。 | [info](operators/mapper/extract_entity_attribute_mapper.md) | - |
 | extract_entity_relation_mapper | 🔤Text 💻CPU 🔗API 🟢Stable | Extracts entities and relations from text to build a knowledge graph. 从文本中提取实体和关系以构建知识图谱。 | [info](operators/mapper/extract_entity_relation_mapper.md) | - |
 | extract_event_mapper | 🔤Text 💻CPU 🔗API 🟢Stable | Extracts events and relevant characters from the text. 从文本中提取事件和相关字符。 | [info](operators/mapper/extract_event_mapper.md) | - |
+| extract_html_content_mapper | 🔤Text 💻CPU 🟡Beta | Extracts the main content and metadata of web pages from raw HTML. 从原始HTML中提取网页的主要内容和元数据。 | [info](operators/mapper/extract_html_content_mapper.md) | - |
 | extract_keyword_mapper | 🔤Text 💻CPU 🔗API 🟢Stable | Generate keywords for the text. 为文本生成关键字。 | [info](operators/mapper/extract_keyword_mapper.md) | - |
 | extract_nickname_mapper | 🔤Text 💻CPU 🔗API 🟢Stable | Extracts nickname relationships in the text using a language model. 使用语言模型提取文本中的昵称关系。 | [info](operators/mapper/extract_nickname_mapper.md) | - |
 | extract_support_text_mapper | 🔤Text 💻CPU 🔗API 🟢Stable | Extracts a supporting sub-text from the original text based on a given summary. 根据给定的摘要从原始文本中提取支持子文本。 | [info](operators/mapper/extract_support_text_mapper.md) | - |

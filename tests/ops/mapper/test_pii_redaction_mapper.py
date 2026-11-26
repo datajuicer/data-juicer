@@ -1,6 +1,7 @@
 # Copyright 2025 The Data-Juicer Authors. All rights reserved.
 # SPDX-License-Identifier: Apache-2.0
 
+import json
 import unittest
 
 from data_juicer.ops.mapper.pii_redaction_mapper import (
@@ -192,6 +193,75 @@ class TestPiiRedactionExtended(DataJuicerTestCaseBase):
     def test_redact_messages_ignores_non_list(self):
         m = self._m()
         self.assertIsNone(m._redact_messages({"content": "dev@example.com"}))
+
+    def test_tool_arguments_dict_redacted_like_json_string(self):
+        args = {
+            "to": "dev@example.com",
+            "body": "call 13800138000",
+            "api_key": "sk-abc123",
+            "user_id": "u-42",
+            "pad_token": "<pad>",
+            "count": 3,
+        }
+        messages = [
+            {"role": "assistant", "tool_calls": [{"function": {"arguments": json.dumps(args)}}]},
+            {"role": "assistant", "tool_calls": [{"function": {"arguments": dict(args)}}]},
+        ]
+        out = self._m().process_single({"messages": messages})
+        expected = {
+            "to": "[EMAIL_REDACTED]",
+            "body": "call [PHONE_REDACTED]",
+            "api_key": "[REDACTED]",
+            "user_id": "[ID_REDACTED]",
+            "pad_token": "<pad>",
+            "count": 3,
+        }
+        self.assertEqual(json.loads(out["messages"][0]["tool_calls"][0]["function"]["arguments"]), expected)
+        self.assertEqual(out["messages"][1]["tool_calls"][0]["function"]["arguments"], expected)
+
+        m = self._m(mask_secrets=False, mask_ids=False)
+        out = m.process_single({"tool": {"arguments": {"api_key": "sk-abc123", "user_id": "u-42"}}})
+        self.assertEqual(out["tool"]["arguments"], {"api_key": "sk-abc123", "user_id": "u-42"})
+
+    def test_redact_messages_tool_use_input_and_tool_result_content(self):
+        messages = [
+            {
+                "role": "assistant",
+                "content": [
+                    {
+                        "type": "tool_use",
+                        "id": "toolu_01",
+                        "name": "send",
+                        "input": {"to": "dev@example.com", "password": "hunter2"},
+                    }
+                ],
+            },
+            {
+                "role": "user",
+                "content": [
+                    {
+                        "type": "tool_result",
+                        "tool_use_id": "toolu_01",
+                        "content": [{"type": "text", "text": "sent from 13800138000"}],
+                    }
+                ],
+            },
+        ]
+        self._m()._redact_messages(messages)
+        tool_use = messages[0]["content"][0]
+        self.assertEqual(tool_use["input"], {"to": "[EMAIL_REDACTED]", "password": "[REDACTED]"})
+        self.assertEqual(tool_use["id"], "toolu_01")
+        self.assertEqual(messages[1]["content"][0]["content"][0]["text"], "sent from [PHONE_REDACTED]")
+
+    def test_process_single_redacts_dict_values_in_redact_keys_only(self):
+        out = self._m().process_single(
+            {
+                "response": {"answer": "mail dev@example.com", "session_id": "abc"},
+                "meta": {"author": "dev@example.com"},
+            }
+        )
+        self.assertEqual(out["response"], {"answer": "mail [EMAIL_REDACTED]", "session_id": "[ID_REDACTED]"})
+        self.assertEqual(out["meta"], {"author": "dev@example.com"})
 
     def test_process_single_redacts_default_keys_and_dialog_history(self):
         m = self._m(mask_urls=True)

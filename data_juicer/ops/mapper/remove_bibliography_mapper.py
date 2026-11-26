@@ -34,10 +34,16 @@ class RemoveBibliographyMapper(Mapper):
         self.pattern += r"\\begin\{thebibliography\}|"
         self.pattern += r"\\bibliography\{.*\}"
         self.pattern += r").*$"
+        self.bibliography_pattern = re.compile(self.pattern, re.DOTALL)
 
     def process_batched(self, samples):
+        # `.*$` under DOTALL swallows everything from the first match to the end of
+        # the text, so substituting it with an empty string is the same as keeping
+        # the prefix before that match. Slicing avoids building a match object for
+        # the whole tail.
         samples[self.text_key] = [
-            re.sub(pattern=self.pattern, repl=r"", string=text, flags=re.DOTALL) for text in samples[self.text_key]
+            text if (match := self.bibliography_pattern.search(text)) is None else text[: match.start()]
+            for text in samples[self.text_key]
         ]
 
         return samples

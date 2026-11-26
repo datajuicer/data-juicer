@@ -80,7 +80,25 @@ class RemoveBibliographyMapperTest(DataJuicerTestCaseBase):
             'text': 'Body text.\n\\appendixpage\n\\begin{appendices}\n\\section{Proofs}\n\\end{appendices}\n',
             'target': 'Body text.\n'
         }]
+        self._run_remove_bibliography(samples)
 
+    def test_other_trigger_variants(self):
+        samples = [{
+            # uppercase REFERENCES
+            'text': 'Body.\n\\begin{REFERENCES}\nref\n',
+            'target': 'Body.\n',
+        }, {
+            'text': 'Body.\n\\begin{thebibliography}{9}\n\\bibitem{a} x\n\\end{thebibliography}\n',
+            'target': 'Body.\n',
+        }, {
+            # a space before the brace is not part of the pattern: keep the text
+            'text': 'Body.\n\\bibliography {sample}\n',
+            'target': 'Body.\n\\bibliography {sample}\n',
+        }, {
+            # the first trigger wins, even when a bibliography follows
+            'text': 'Body.\n\\appendix\n\\section{A}\n\\bibliography{b}\n',
+            'target': 'Body.\n',
+        }]
         self._run_remove_bibliography(samples)
 
 

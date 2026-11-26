@@ -30,6 +30,17 @@ class PunctuationNormalizationMapperTest(DataJuicerTestCaseBase):
 
         self._run_punctuation_normalization(samples)
 
+    def test_preserves_unmapped_text_and_expands_single_characters(self):
+        texts = ["", "Plain ASCII!?\r\n", "中文\u200d🙂—…．％", "e\u0301\t《题目》"]
+        expected = ["", "Plain ASCII!?\r\n", "中文\u200d🙂 - .... %", 'e\u0301\t"题目"']
+        self._run_punctuation_normalization(
+            [{"text": text, "target": target} for text, target in zip(texts, expected)]
+        )
+
+    def test_custom_mapping_does_not_cascade(self):
+        self.op.punctuation_unicode = {"a": "b", "b": "c", "xy": "z"}
+        self._run_punctuation_normalization([{"text": "ab xy", "target": "bc xy"}])
+
     def test_fullwidth_digits_and_quotes(self):
         samples = [{
             'text': '第１期：＂１２３４５６７８９０＂',

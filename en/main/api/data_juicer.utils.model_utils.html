@@ -354,7 +354,9 @@
 <li class="toctree-l2"><a class="reference internal" href="../docs/operators/mapper/video_human_3d_pose_mapper.html">video_human_3d_pose_mapper</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../docs/operators/mapper/video_human_tracks_extraction_mapper.html">video_human_tracks_extraction_mapper</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../docs/operators/mapper/video_human_tracks_face_demographic_mapper.html">video_human_tracks_face_demographic_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../docs/operators/mapper/video_normal_map_mapper.html">video_normal_map_mapper</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../docs/operators/mapper/video_object_segmenting_mapper.html">video_object_segmenting_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../docs/operators/mapper/video_optical_flow_mapper.html">video_optical_flow_mapper</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../docs/operators/mapper/video_remove_watermark_mapper.html">video_remove_watermark_mapper</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../docs/operators/mapper/video_resize_aspect_ratio_mapper.html">video_resize_aspect_ratio_mapper</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../docs/operators/mapper/video_resize_resolution_mapper.html">video_resize_resolution_mapper</a></li>
@@ -365,6 +367,7 @@
 <li class="toctree-l2"><a class="reference internal" href="../docs/operators/mapper/video_tagging_from_frames_mapper.html">video_tagging_from_frames_mapper</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../docs/operators/mapper/video_trajectory_overlay_mapper.html">video_trajectory_overlay_mapper</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../docs/operators/mapper/video_undistort_mapper.html">video_undistort_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../docs/operators/mapper/video_universal_segmentation_mapper.html">video_universal_segmentation_mapper</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../docs/operators/mapper/video_whole_body_pose_estimation_mapper.html">video_whole_body_pose_estimation_mapper</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../docs/operators/mapper/whitespace_normalization_mapper.html">whitespace_normalization_mapper</a></li>
 </ul>
@@ -845,8 +848,18 @@ otherwise, only the processor is returned.</p>
 </dd></dl>
 
 <dl class="py function">
+<dt class="sig sig-object py" id="data_juicer.utils.model_utils.prepare_normal_map_metric3d">
+<span class="sig-prename descclassname"><span class="pre">data_juicer.utils.model_utils.</span></span><span class="sig-name descname"><span class="pre">prepare_normal_map_metric3d</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">model_path</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">model_params</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/data_juicer/utils/model_utils.html#prepare_normal_map_metric3d"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#data_juicer.utils.model_utils.prepare_normal_map_metric3d" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py function">
 <dt class="sig sig-object py" id="data_juicer.utils.model_utils.prepare_opencv_classifier">
 <span class="sig-prename descclassname"><span class="pre">data_juicer.utils.model_utils.</span></span><span class="sig-name descname"><span class="pre">prepare_opencv_classifier</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">model_path</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">model_params</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/data_juicer/utils/model_utils.html#prepare_opencv_classifier"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#data_juicer.utils.model_utils.prepare_opencv_classifier" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="data_juicer.utils.model_utils.prepare_optical_flow_raft">
+<span class="sig-prename descclassname"><span class="pre">data_juicer.utils.model_utils.</span></span><span class="sig-name descname"><span class="pre">prepare_optical_flow_raft</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">model_params</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/data_juicer/utils/model_utils.html#prepare_optical_flow_raft"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#data_juicer.utils.model_utils.prepare_optical_flow_raft" title="Link to this definition">¶</a></dt>
 <dd></dd></dl>
 
 <dl class="py function">
@@ -1189,7 +1202,9 @@ It is used to load a mmdeploy model and run inference on given images.</p>
 <li><a class="reference internal" href="#data_juicer.utils.model_utils.prepare_moge_model"><code class="docutils literal notranslate"><span class="pre">prepare_moge_model()</span></code></a></li>
 <li><a class="reference internal" href="#data_juicer.utils.model_utils.prepare_nltk_model"><code class="docutils literal notranslate"><span class="pre">prepare_nltk_model()</span></code></a></li>
 <li><a class="reference internal" href="#data_juicer.utils.model_utils.prepare_nltk_pos_tagger"><code class="docutils literal notranslate"><span class="pre">prepare_nltk_pos_tagger()</span></code></a></li>
+<li><a class="reference internal" href="#data_juicer.utils.model_utils.prepare_normal_map_metric3d"><code class="docutils literal notranslate"><span class="pre">prepare_normal_map_metric3d()</span></code></a></li>
 <li><a class="reference internal" href="#data_juicer.utils.model_utils.prepare_opencv_classifier"><code class="docutils literal notranslate"><span class="pre">prepare_opencv_classifier()</span></code></a></li>
+<li><a class="reference internal" href="#data_juicer.utils.model_utils.prepare_optical_flow_raft"><code class="docutils literal notranslate"><span class="pre">prepare_optical_flow_raft()</span></code></a></li>
 <li><a class="reference internal" href="#data_juicer.utils.model_utils.prepare_recognizeAnything_model"><code class="docutils literal notranslate"><span class="pre">prepare_recognizeAnything_model()</span></code></a></li>
 <li><a class="reference internal" href="#data_juicer.utils.model_utils.prepare_sdxl_prompt2prompt"><code class="docutils literal notranslate"><span class="pre">prepare_sdxl_prompt2prompt()</span></code></a></li>
 <li><a class="reference internal" href="#data_juicer.utils.model_utils.prepare_sentencepiece_model"><code class="docutils literal notranslate"><span class="pre">prepare_sentencepiece_model()</span></code></a></li>

@@ -353,7 +353,9 @@
 <li class="toctree-l2"><a class="reference internal" href="../../../../docs/operators/mapper/video_human_3d_pose_mapper.html">video_human_3d_pose_mapper</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../../../docs/operators/mapper/video_human_tracks_extraction_mapper.html">video_human_tracks_extraction_mapper</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../../../docs/operators/mapper/video_human_tracks_face_demographic_mapper.html">video_human_tracks_face_demographic_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../../docs/operators/mapper/video_normal_map_mapper.html">video_normal_map_mapper</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../../../docs/operators/mapper/video_object_segmenting_mapper.html">video_object_segmenting_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../../docs/operators/mapper/video_optical_flow_mapper.html">video_optical_flow_mapper</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../../../docs/operators/mapper/video_remove_watermark_mapper.html">video_remove_watermark_mapper</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../../../docs/operators/mapper/video_resize_aspect_ratio_mapper.html">video_resize_aspect_ratio_mapper</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../../../docs/operators/mapper/video_resize_resolution_mapper.html">video_resize_resolution_mapper</a></li>
@@ -364,6 +366,7 @@
 <li class="toctree-l2"><a class="reference internal" href="../../../../docs/operators/mapper/video_tagging_from_frames_mapper.html">video_tagging_from_frames_mapper</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../../../docs/operators/mapper/video_trajectory_overlay_mapper.html">video_trajectory_overlay_mapper</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../../../docs/operators/mapper/video_undistort_mapper.html">video_undistort_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../../docs/operators/mapper/video_universal_segmentation_mapper.html">video_universal_segmentation_mapper</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../../../docs/operators/mapper/video_whole_body_pose_estimation_mapper.html">video_whole_body_pose_estimation_mapper</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../../../docs/operators/mapper/whitespace_normalization_mapper.html">whitespace_normalization_mapper</a></li>
 </ul>
@@ -461,7 +464,7 @@
 
 
 <div class="viewcode-block" id="Tracer">
-<a class="viewcode-back" href="../../../../api/data_juicer.core.tracer.tracer.html#data_juicer.core.tracer.tracer.Tracer">[docs]</a>
+<a class="viewcode-back" href="../../../../api/data_juicer.core.html#data_juicer.core.Tracer">[docs]</a>
 <span class="k">class</span><span class="w"> </span><span class="nc">Tracer</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">"""</span>
 <span class="sd">    The tracer to trace the sample changes before and after an operator</span>
@@ -472,7 +475,7 @@
 <span class="sd">    """</span>
 
 <div class="viewcode-block" id="Tracer.__init__">
-<a class="viewcode-back" href="../../../../api/data_juicer.core.tracer.tracer.html#data_juicer.core.tracer.tracer.Tracer.__init__">[docs]</a>
+<a class="viewcode-back" href="../../../../api/data_juicer.core.html#data_juicer.core.Tracer.__init__">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">work_dir</span><span class="p">,</span> <span class="n">op_list_to_trace</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">show_num</span><span class="o">=</span><span class="mi">10</span><span class="p">,</span> <span class="n">trace_keys</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">lock</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
 <span class="w">        </span><span class="sd">"""</span>
 <span class="sd">        Initialization method.</span>
@@ -511,7 +514,7 @@
 
 
 <div class="viewcode-block" id="Tracer.should_trace_op">
-<a class="viewcode-back" href="../../../../api/data_juicer.core.tracer.tracer.html#data_juicer.core.tracer.tracer.Tracer.should_trace_op">[docs]</a>
+<a class="viewcode-back" href="../../../../api/data_juicer.core.html#data_juicer.core.Tracer.should_trace_op">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">should_trace_op</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">op_name</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
 <span class="w">        </span><span class="sd">"""</span>
 <span class="sd">        Check if an operator should be traced.</span>
@@ -523,7 +526,7 @@
 
 
 <div class="viewcode-block" id="Tracer.is_collection_complete">
-<a class="viewcode-back" href="../../../../api/data_juicer.core.tracer.tracer.html#data_juicer.core.tracer.tracer.Tracer.is_collection_complete">[docs]</a>
+<a class="viewcode-back" href="../../../../api/data_juicer.core.html#data_juicer.core.Tracer.is_collection_complete">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">is_collection_complete</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">op_name</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
 <span class="w">        </span><span class="sd">"""</span>
 <span class="sd">        Check if enough samples have been collected for an operator.</span>
@@ -536,7 +539,7 @@
 
 
 <div class="viewcode-block" id="Tracer.collect_mapper_sample">
-<a class="viewcode-back" href="../../../../api/data_juicer.core.tracer.tracer.html#data_juicer.core.tracer.tracer.Tracer.collect_mapper_sample">[docs]</a>
+<a class="viewcode-back" href="../../../../api/data_juicer.core.html#data_juicer.core.Tracer.collect_mapper_sample">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">collect_mapper_sample</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">op_name</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">original_sample</span><span class="p">:</span> <span class="nb">dict</span><span class="p">,</span> <span class="n">processed_sample</span><span class="p">:</span> <span class="nb">dict</span><span class="p">,</span> <span class="n">text_key</span><span class="p">:</span> <span class="nb">str</span><span class="p">):</span>
 <span class="w">        </span><span class="sd">"""</span>
 <span class="sd">        Collect a sample-level change for a Mapper operator.</span>
@@ -583,7 +586,7 @@
 
 
 <div class="viewcode-block" id="Tracer.collect_filter_sample">
-<a class="viewcode-back" href="../../../../api/data_juicer.core.tracer.tracer.html#data_juicer.core.tracer.tracer.Tracer.collect_filter_sample">[docs]</a>
+<a class="viewcode-back" href="../../../../api/data_juicer.core.html#data_juicer.core.Tracer.collect_filter_sample">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">collect_filter_sample</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">op_name</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">sample</span><span class="p">:</span> <span class="nb">dict</span><span class="p">,</span> <span class="n">should_keep</span><span class="p">:</span> <span class="nb">bool</span><span class="p">):</span>
 <span class="w">        </span><span class="sd">"""</span>
 <span class="sd">        Collect a sample-level change for a Filter operator.</span>
@@ -619,7 +622,7 @@
 
 
 <div class="viewcode-block" id="Tracer.get_trace_file_path">
-<a class="viewcode-back" href="../../../../api/data_juicer.core.tracer.tracer.html#data_juicer.core.tracer.tracer.Tracer.get_trace_file_path">[docs]</a>
+<a class="viewcode-back" href="../../../../api/data_juicer.core.html#data_juicer.core.Tracer.get_trace_file_path">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">get_trace_file_path</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">op_name</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
 <span class="w">        </span><span class="sd">"""</span>
 <span class="sd">        Get the file path for a trace file.</span>
@@ -631,7 +634,7 @@
 
 
 <div class="viewcode-block" id="Tracer.trace_mapper">
-<a class="viewcode-back" href="../../../../api/data_juicer.core.tracer.tracer.html#data_juicer.core.tracer.tracer.Tracer.trace_mapper">[docs]</a>
+<a class="viewcode-back" href="../../../../api/data_juicer.core.html#data_juicer.core.Tracer.trace_mapper">[docs]</a>
     <span class="nd">@deprecated</span><span class="p">(</span><span class="s2">"This method will be deprecated in the future. Please apply the sample-level tracing method instead."</span><span class="p">)</span>
     <span class="k">def</span><span class="w"> </span><span class="nf">trace_mapper</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">op_name</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">previous_ds</span><span class="p">:</span> <span class="n">Dataset</span><span class="p">,</span> <span class="n">processed_ds</span><span class="p">:</span> <span class="n">Dataset</span><span class="p">,</span> <span class="n">text_key</span><span class="p">:</span> <span class="nb">str</span><span class="p">):</span>
 <span class="w">        </span><span class="sd">"""</span>
@@ -692,7 +695,7 @@
 
 
 <div class="viewcode-block" id="Tracer.trace_batch_mapper">
-<a class="viewcode-back" href="../../../../api/data_juicer.core.tracer.tracer.html#data_juicer.core.tracer.tracer.Tracer.trace_batch_mapper">[docs]</a>
+<a class="viewcode-back" href="../../../../api/data_juicer.core.html#data_juicer.core.Tracer.trace_batch_mapper">[docs]</a>
     <span class="nd">@deprecated</span><span class="p">(</span><span class="s2">"This method will be deprecated in the future. Please apply the sample-level tracing method instead."</span><span class="p">)</span>
     <span class="k">def</span><span class="w"> </span><span class="nf">trace_batch_mapper</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">op_name</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">previous_ds</span><span class="p">:</span> <span class="n">Dataset</span><span class="p">,</span> <span class="n">processed_ds</span><span class="p">:</span> <span class="n">Dataset</span><span class="p">,</span> <span class="n">text_key</span><span class="p">:</span> <span class="nb">str</span><span class="p">):</span>
 <span class="w">        </span><span class="sd">"""</span>
@@ -729,7 +732,7 @@
 
 
 <div class="viewcode-block" id="Tracer.trace_filter">
-<a class="viewcode-back" href="../../../../api/data_juicer.core.tracer.tracer.html#data_juicer.core.tracer.tracer.Tracer.trace_filter">[docs]</a>
+<a class="viewcode-back" href="../../../../api/data_juicer.core.html#data_juicer.core.Tracer.trace_filter">[docs]</a>
     <span class="nd">@deprecated</span><span class="p">(</span><span class="s2">"This method will be deprecated in the future. Please apply the sample-level tracing method instead."</span><span class="p">)</span>
     <span class="k">def</span><span class="w"> </span><span class="nf">trace_filter</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">op_name</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">previous_ds</span><span class="p">:</span> <span class="n">Dataset</span><span class="p">,</span> <span class="n">processed_ds</span><span class="p">:</span> <span class="n">Dataset</span><span class="p">):</span>
 <span class="w">        </span><span class="sd">"""</span>
@@ -796,7 +799,7 @@
 
 
 <div class="viewcode-block" id="Tracer.trace_deduplicator">
-<a class="viewcode-back" href="../../../../api/data_juicer.core.tracer.tracer.html#data_juicer.core.tracer.tracer.Tracer.trace_deduplicator">[docs]</a>
+<a class="viewcode-back" href="../../../../api/data_juicer.core.html#data_juicer.core.Tracer.trace_deduplicator">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">trace_deduplicator</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">op_name</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">dup_pairs</span><span class="p">:</span> <span class="nb">dict</span><span class="p">):</span>
 <span class="w">        </span><span class="sd">"""</span>
 <span class="sd">        Compare datasets before and after a Deduplicator.</span>

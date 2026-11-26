@@ -353,7 +353,9 @@
 <li class="toctree-l2"><a class="reference internal" href="../../../docs/operators/mapper/video_human_3d_pose_mapper.html">video_human_3d_pose_mapper</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../../docs/operators/mapper/video_human_tracks_extraction_mapper.html">video_human_tracks_extraction_mapper</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../../docs/operators/mapper/video_human_tracks_face_demographic_mapper.html">video_human_tracks_face_demographic_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../docs/operators/mapper/video_normal_map_mapper.html">video_normal_map_mapper</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../../docs/operators/mapper/video_object_segmenting_mapper.html">video_object_segmenting_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../docs/operators/mapper/video_optical_flow_mapper.html">video_optical_flow_mapper</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../../docs/operators/mapper/video_remove_watermark_mapper.html">video_remove_watermark_mapper</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../../docs/operators/mapper/video_resize_aspect_ratio_mapper.html">video_resize_aspect_ratio_mapper</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../../docs/operators/mapper/video_resize_resolution_mapper.html">video_resize_resolution_mapper</a></li>
@@ -364,6 +366,7 @@
 <li class="toctree-l2"><a class="reference internal" href="../../../docs/operators/mapper/video_tagging_from_frames_mapper.html">video_tagging_from_frames_mapper</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../../docs/operators/mapper/video_trajectory_overlay_mapper.html">video_trajectory_overlay_mapper</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../../docs/operators/mapper/video_undistort_mapper.html">video_undistort_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../docs/operators/mapper/video_universal_segmentation_mapper.html">video_universal_segmentation_mapper</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../../docs/operators/mapper/video_whole_body_pose_estimation_mapper.html">video_whole_body_pose_estimation_mapper</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../../docs/operators/mapper/whitespace_normalization_mapper.html">whitespace_normalization_mapper</a></li>
 </ul>
@@ -1710,11 +1713,58 @@
 
 
 
+<div class="viewcode-block" id="prepare_normal_map_metric3d">
+<a class="viewcode-back" href="../../../api/data_juicer.utils.model_utils.html#data_juicer.utils.model_utils.prepare_normal_map_metric3d">[文档]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">prepare_normal_map_metric3d</span><span class="p">(</span><span class="n">model_path</span><span class="p">,</span> <span class="o">**</span><span class="n">model_params</span><span class="p">):</span>
+    <span class="n">device</span> <span class="o">=</span> <span class="n">model_params</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="s2">"device"</span><span class="p">,</span> <span class="s2">"cpu"</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">device</span> <span class="o">==</span> <span class="s2">"cpu"</span><span class="p">:</span>
+        <span class="n">providers</span> <span class="o">=</span> <span class="p">[</span><span class="s2">"CPUExecutionProvider"</span><span class="p">]</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">rank</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">device</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s2">":"</span><span class="p">)[</span><span class="o">-</span><span class="mi">1</span><span class="p">])</span> <span class="k">if</span> <span class="s2">":"</span> <span class="ow">in</span> <span class="n">device</span> <span class="k">else</span> <span class="mi">0</span>
+        <span class="n">providers</span> <span class="o">=</span> <span class="p">[</span>
+            <span class="p">(</span><span class="s2">"CUDAExecutionProvider"</span><span class="p">,</span> <span class="p">{</span><span class="s2">"cudnn_conv_use_max_workspace"</span><span class="p">:</span> <span class="s2">"1"</span><span class="p">,</span> <span class="s2">"device_id"</span><span class="p">:</span> <span class="nb">str</span><span class="p">(</span><span class="n">rank</span><span class="p">)}),</span>
+            <span class="s2">"CPUExecutionProvider"</span><span class="p">,</span>
+        <span class="p">]</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">isfile</span><span class="p">(</span><span class="n">model_path</span><span class="p">):</span>
+        <span class="n">huggingface_hub</span> <span class="o">=</span> <span class="n">LazyLoader</span><span class="p">(</span><span class="s2">"huggingface_hub"</span><span class="p">)</span>
+        <span class="n">model_path</span> <span class="o">=</span> <span class="n">huggingface_hub</span><span class="o">.</span><span class="n">hf_hub_download</span><span class="p">(</span>
+            <span class="n">repo_id</span><span class="o">=</span><span class="s2">"onnx-community/metric3d-vit-large"</span><span class="p">,</span>
+            <span class="n">filename</span><span class="o">=</span><span class="s2">"onnx/model.onnx"</span><span class="p">,</span>
+            <span class="n">local_dir</span><span class="o">=</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">DJMC</span><span class="p">,</span> <span class="s2">"metric3d"</span><span class="p">),</span>
+        <span class="p">)</span>
+    <span class="kn">import</span><span class="w"> </span><span class="nn">onnxruntime</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">ort</span>
+
+    <span class="n">session</span> <span class="o">=</span> <span class="n">ort</span><span class="o">.</span><span class="n">InferenceSession</span><span class="p">(</span><span class="n">model_path</span><span class="p">,</span> <span class="n">providers</span><span class="o">=</span><span class="n">providers</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">device</span> <span class="o">!=</span> <span class="s2">"cpu"</span> <span class="ow">and</span> <span class="s2">"CUDAExecutionProvider"</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">session</span><span class="o">.</span><span class="n">get_providers</span><span class="p">():</span>
+        <span class="k">raise</span> <span class="ne">RuntimeError</span><span class="p">(</span>
+            <span class="s2">"Metric3D could not activate CUDAExecutionProvider. Check onnxruntime-gpu and its CUDA/cuDNN "</span>
+            <span class="s2">"dependencies or set accelerator='cpu'."</span>
+        <span class="p">)</span>
+    <span class="k">return</span> <span class="n">session</span></div>
+
+
+
 <div class="viewcode-block" id="prepare_opencv_classifier">
 <a class="viewcode-back" href="../../../api/data_juicer.utils.model_utils.html#data_juicer.utils.model_utils.prepare_opencv_classifier">[文档]</a>
 <span class="k">def</span><span class="w"> </span><span class="nf">prepare_opencv_classifier</span><span class="p">(</span><span class="n">model_path</span><span class="p">,</span> <span class="o">**</span><span class="n">model_params</span><span class="p">):</span>
     <span class="n">model</span> <span class="o">=</span> <span class="n">cv2</span><span class="o">.</span><span class="n">CascadeClassifier</span><span class="p">(</span><span class="n">model_path</span><span class="p">)</span>
     <span class="k">return</span> <span class="n">model</span></div>
+
+
+
+<div class="viewcode-block" id="prepare_optical_flow_raft">
+<a class="viewcode-back" href="../../../api/data_juicer.utils.model_utils.html#data_juicer.utils.model_utils.prepare_optical_flow_raft">[文档]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">prepare_optical_flow_raft</span><span class="p">(</span><span class="o">**</span><span class="n">model_params</span><span class="p">):</span>
+    <span class="n">device</span> <span class="o">=</span> <span class="n">model_params</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="s2">"device"</span><span class="p">)</span>
+
+    <span class="kn">from</span><span class="w"> </span><span class="nn">torchvision.models.optical_flow</span><span class="w"> </span><span class="kn">import</span> <span class="n">Raft_Large_Weights</span><span class="p">,</span> <span class="n">raft_large</span>
+
+    <span class="n">weights</span> <span class="o">=</span> <span class="n">Raft_Large_Weights</span><span class="o">.</span><span class="n">DEFAULT</span>
+    <span class="n">transforms</span> <span class="o">=</span> <span class="n">weights</span><span class="o">.</span><span class="n">transforms</span><span class="p">()</span>
+    <span class="n">model</span> <span class="o">=</span> <span class="n">raft_large</span><span class="p">(</span><span class="n">weights</span><span class="o">=</span><span class="n">weights</span><span class="p">)</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">device</span><span class="p">)</span>
+    <span class="n">model</span><span class="o">.</span><span class="n">eval</span><span class="p">()</span>
+
+    <span class="k">return</span> <span class="n">model</span><span class="p">,</span> <span class="n">transforms</span></div>
 
 
 
@@ -2928,7 +2978,9 @@
     <span class="s2">"moge"</span><span class="p">:</span> <span class="n">prepare_moge_model</span><span class="p">,</span>
     <span class="s2">"nltk"</span><span class="p">:</span> <span class="n">prepare_nltk_model</span><span class="p">,</span>
     <span class="s2">"nltk_pos_tagger"</span><span class="p">:</span> <span class="n">prepare_nltk_pos_tagger</span><span class="p">,</span>
+    <span class="s2">"normal_map_metric3d"</span><span class="p">:</span> <span class="n">prepare_normal_map_metric3d</span><span class="p">,</span>
     <span class="s2">"opencv_classifier"</span><span class="p">:</span> <span class="n">prepare_opencv_classifier</span><span class="p">,</span>
+    <span class="s2">"optical_flow_raft"</span><span class="p">:</span> <span class="n">prepare_optical_flow_raft</span><span class="p">,</span>
     <span class="s2">"recognizeAnything"</span><span class="p">:</span> <span class="n">prepare_recognizeAnything_model</span><span class="p">,</span>
     <span class="s2">"sdxl-prompt-to-prompt"</span><span class="p">:</span> <span class="n">prepare_sdxl_prompt2prompt</span><span class="p">,</span>
     <span class="s2">"sentencepiece"</span><span class="p">:</span> <span class="n">prepare_sentencepiece_for_lang</span><span class="p">,</span>

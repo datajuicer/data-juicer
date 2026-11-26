@@ -354,7 +354,9 @@
 <li class="toctree-l2"><a class="reference internal" href="operators/mapper/video_human_3d_pose_mapper.html">video_human_3d_pose_mapper</a></li>
 <li class="toctree-l2"><a class="reference internal" href="operators/mapper/video_human_tracks_extraction_mapper.html">video_human_tracks_extraction_mapper</a></li>
 <li class="toctree-l2"><a class="reference internal" href="operators/mapper/video_human_tracks_face_demographic_mapper.html">video_human_tracks_face_demographic_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operators/mapper/video_normal_map_mapper.html">video_normal_map_mapper</a></li>
 <li class="toctree-l2"><a class="reference internal" href="operators/mapper/video_object_segmenting_mapper.html">video_object_segmenting_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operators/mapper/video_optical_flow_mapper.html">video_optical_flow_mapper</a></li>
 <li class="toctree-l2"><a class="reference internal" href="operators/mapper/video_remove_watermark_mapper.html">video_remove_watermark_mapper</a></li>
 <li class="toctree-l2"><a class="reference internal" href="operators/mapper/video_resize_aspect_ratio_mapper.html">video_resize_aspect_ratio_mapper</a></li>
 <li class="toctree-l2"><a class="reference internal" href="operators/mapper/video_resize_resolution_mapper.html">video_resize_resolution_mapper</a></li>
@@ -365,6 +367,7 @@
 <li class="toctree-l2"><a class="reference internal" href="operators/mapper/video_tagging_from_frames_mapper.html">video_tagging_from_frames_mapper</a></li>
 <li class="toctree-l2"><a class="reference internal" href="operators/mapper/video_trajectory_overlay_mapper.html">video_trajectory_overlay_mapper</a></li>
 <li class="toctree-l2"><a class="reference internal" href="operators/mapper/video_undistort_mapper.html">video_undistort_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operators/mapper/video_universal_segmentation_mapper.html">video_universal_segmentation_mapper</a></li>
 <li class="toctree-l2"><a class="reference internal" href="operators/mapper/video_whole_body_pose_estimation_mapper.html">video_whole_body_pose_estimation_mapper</a></li>
 <li class="toctree-l2"><a class="reference internal" href="operators/mapper/whitespace_normalization_mapper.html">whitespace_normalization_mapper</a></li>
 </ul>
@@ -506,7 +509,7 @@ Data-Juicer 中的算子分为以下 8 种类型。</p>
 <td><p>Group samples to batched samples. 将样本分组，每一组组成一个批量样本。</p></td>
 </tr>
 <tr class="row-odd"><td><p><a class="reference internal" href="../api/data_juicer.ops.mapper.html#module-data_juicer.ops.mapper" title="data_juicer.ops.mapper"><span class="xref myst py py-mod">mapper</span></a></p></td>
-<td class="text-center"><p>139</p></td>
+<td class="text-center"><p>142</p></td>
 <td><p>Edits and transforms samples. 对数据样本进行编辑和转换。</p></td>
 </tr>
 <tr class="row-even"><td><p><a class="reference internal" href="../api/data_juicer.ops.pipeline.html#module-data_juicer.ops.pipeline" title="data_juicer.ops.pipeline"><span class="xref myst py py-mod">pipeline</span></a></p></td>
@@ -1906,10 +1909,22 @@ Data-Juicer 中的算子分为以下 8 种类型。</p>
 <td><p><a class="reference internal" href="operators/mapper/video_human_tracks_face_demographic_mapper.html"><span class="std std-doc">info</span></a></p></td>
 <td><p><a class="reference external" href="https://arxiv.org/abs/2412.17574">HumanVBench</a></p></td>
 </tr>
-<tr class="row-even"><td><p>video_object_segmenting_mapper</p></td>
+<tr class="row-even"><td><p>video_normal_map_mapper</p></td>
+<td><p>🎬Video 🚀GPU 🟡Beta</p></td>
+<td><p>Generate normal maps for videos (with the Metric3D model). 为视频生成法线贴图 (使用Metric3D模型)。</p></td>
+<td><p><a class="reference internal" href="operators/mapper/video_normal_map_mapper.html"><span class="std std-doc">info</span></a></p></td>
+<td><p>-</p></td>
+</tr>
+<tr class="row-odd"><td><p>video_object_segmenting_mapper</p></td>
 <td><p>🎬Video 🚀GPU 🧩HF 🟡Beta</p></td>
 <td><p>Text-guided semantic segmentation of valid objects throughout the video (YOLOE + SAM2). 在整个视频中对有效对象进行文本引导的语义分割 (YOLOE SAM2)。</p></td>
 <td><p><a class="reference internal" href="operators/mapper/video_object_segmenting_mapper.html"><span class="std std-doc">info</span></a></p></td>
+<td><p>-</p></td>
+</tr>
+<tr class="row-even"><td><p>video_optical_flow_mapper</p></td>
+<td><p>🎬Video 🚀GPU 🟡Beta</p></td>
+<td><p>Generate optical flow information for videos. 生成视频的光流信息。</p></td>
+<td><p><a class="reference internal" href="operators/mapper/video_optical_flow_mapper.html"><span class="std std-doc">info</span></a></p></td>
 <td><p>-</p></td>
 </tr>
 <tr class="row-odd"><td><p>video_remove_watermark_mapper</p></td>
@@ -1972,13 +1987,19 @@ Data-Juicer 中的算子分为以下 8 种类型。</p>
 <td><p><a class="reference internal" href="operators/mapper/video_undistort_mapper.html"><span class="std std-doc">info</span></a></p></td>
 <td><p>-</p></td>
 </tr>
-<tr class="row-odd"><td><p>video_whole_body_pose_estimation_mapper</p></td>
+<tr class="row-odd"><td><p>video_universal_segmentation_mapper</p></td>
+<td><p>🎬Video 🚀GPU 🧩HF 🟡Beta</p></td>
+<td><p>Generate semantic segmentation, instance segmentation, and panoptic segmentation information for videos (with the OneFormer model). 生成视频的语义分割、实例分割和全景分割信息 (使用OneFormer模型)。</p></td>
+<td><p><a class="reference internal" href="operators/mapper/video_universal_segmentation_mapper.html"><span class="std std-doc">info</span></a></p></td>
+<td><p>-</p></td>
+</tr>
+<tr class="row-even"><td><p>video_whole_body_pose_estimation_mapper</p></td>
 <td><p>🎬Video 🚀GPU 🟡Beta</p></td>
 <td><p>Input a video containing people, and use the DWPose model to extract the body, hand, feet, and face keypoints of the human subjects in the video, i.e., 2D Whole-body Pose Estimation. 输入包含人的视频，并使用DWPose模型来提取视频中人类主体的身体、手、脚和面部关键点，即2D全身姿态估计。</p></td>
 <td><p><a class="reference internal" href="operators/mapper/video_whole_body_pose_estimation_mapper.html"><span class="std std-doc">info</span></a></p></td>
 <td><p>-</p></td>
 </tr>
-<tr class="row-even"><td><p>whitespace_normalization_mapper</p></td>
+<tr class="row-odd"><td><p>whitespace_normalization_mapper</p></td>
 <td><p>🔤Text 💻CPU 🟢Stable</p></td>
 <td><p>Normalizes various types of whitespace characters to standard spaces in text samples. 将文本样本中各种类型的空白字符规范化为标准空格。</p></td>
 <td><p><a class="reference internal" href="operators/mapper/whitespace_normalization_mapper.html"><span class="std std-doc">info</span></a></p></td>

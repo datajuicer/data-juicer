@@ -1,0 +1,7 @@
+data\_juicer.ops.mapper.video\_normal\_map\_mapper module
+=========================================================
+
+.. automodule:: data_juicer.ops.mapper.video_normal_map_mapper
+   :members:
+   :show-inheritance:
+   :undoc-members:

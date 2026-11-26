@@ -353,7 +353,9 @@
 <li class="toctree-l2"><a class="reference internal" href="../../../docs/operators/mapper/video_human_3d_pose_mapper.html">video_human_3d_pose_mapper</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../../docs/operators/mapper/video_human_tracks_extraction_mapper.html">video_human_tracks_extraction_mapper</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../../docs/operators/mapper/video_human_tracks_face_demographic_mapper.html">video_human_tracks_face_demographic_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../docs/operators/mapper/video_normal_map_mapper.html">video_normal_map_mapper</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../../docs/operators/mapper/video_object_segmenting_mapper.html">video_object_segmenting_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../docs/operators/mapper/video_optical_flow_mapper.html">video_optical_flow_mapper</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../../docs/operators/mapper/video_remove_watermark_mapper.html">video_remove_watermark_mapper</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../../docs/operators/mapper/video_resize_aspect_ratio_mapper.html">video_resize_aspect_ratio_mapper</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../../docs/operators/mapper/video_resize_resolution_mapper.html">video_resize_resolution_mapper</a></li>
@@ -364,6 +366,7 @@
 <li class="toctree-l2"><a class="reference internal" href="../../../docs/operators/mapper/video_tagging_from_frames_mapper.html">video_tagging_from_frames_mapper</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../../docs/operators/mapper/video_trajectory_overlay_mapper.html">video_trajectory_overlay_mapper</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../../docs/operators/mapper/video_undistort_mapper.html">video_undistort_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../docs/operators/mapper/video_universal_segmentation_mapper.html">video_universal_segmentation_mapper</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../../docs/operators/mapper/video_whole_body_pose_estimation_mapper.html">video_whole_body_pose_estimation_mapper</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../../docs/operators/mapper/whitespace_normalization_mapper.html">whitespace_normalization_mapper</a></li>
 </ul>
@@ -462,7 +465,7 @@
 
 
 <div class="viewcode-block" id="resource_monitor">
-<a class="viewcode-back" href="../../../api/data_juicer.core.monitor.html#data_juicer.core.monitor.resource_monitor">[docs]</a>
+<a class="viewcode-back" href="../../../api/data_juicer.core.monitor.html#data_juicer.core.resource_monitor">[docs]</a>
 <span class="k">def</span><span class="w"> </span><span class="nf">resource_monitor</span><span class="p">(</span><span class="n">mdict</span><span class="p">,</span> <span class="n">interval</span><span class="p">):</span>
     <span class="c1"># function to monitor the resource</span>
     <span class="c1"># interval is the sampling interval</span>
@@ -483,7 +486,7 @@
 
 
 <div class="viewcode-block" id="Monitor">
-<a class="viewcode-back" href="../../../api/data_juicer.core.monitor.html#data_juicer.core.monitor.Monitor">[docs]</a>
+<a class="viewcode-back" href="../../../api/data_juicer.core.html#data_juicer.core.Monitor">[docs]</a>
 <span class="k">class</span><span class="w"> </span><span class="nc">Monitor</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">"""</span>
 <span class="sd">    Monitor resource utilization and other information during the data</span>
@@ -543,7 +546,7 @@
     <span class="p">}</span>
 
 <div class="viewcode-block" id="Monitor.monitor_current_resources">
-<a class="viewcode-back" href="../../../api/data_juicer.core.monitor.html#data_juicer.core.monitor.Monitor.monitor_current_resources">[docs]</a>
+<a class="viewcode-back" href="../../../api/data_juicer.core.html#data_juicer.core.Monitor.monitor_current_resources">[docs]</a>
     <span class="nd">@staticmethod</span>
     <span class="k">def</span><span class="w"> </span><span class="nf">monitor_current_resources</span><span class="p">():</span>
 <span class="w">        </span><span class="sd">"""</span>
@@ -576,7 +579,7 @@
 
 
 <div class="viewcode-block" id="Monitor.draw_resource_util_graph">
-<a class="viewcode-back" href="../../../api/data_juicer.core.monitor.html#data_juicer.core.monitor.Monitor.draw_resource_util_graph">[docs]</a>
+<a class="viewcode-back" href="../../../api/data_juicer.core.html#data_juicer.core.Monitor.draw_resource_util_graph">[docs]</a>
     <span class="nd">@staticmethod</span>
     <span class="k">def</span><span class="w"> </span><span class="nf">draw_resource_util_graph</span><span class="p">(</span><span class="n">resource_util_list</span><span class="p">,</span> <span class="n">store_dir</span><span class="p">):</span>
         <span class="n">plt</span> <span class="o">=</span> <span class="n">LazyLoader</span><span class="p">(</span><span class="s2">"matplotlib.pyplot"</span><span class="p">)</span>
@@ -599,7 +602,7 @@
 
 
 <div class="viewcode-block" id="Monitor.analyze_resource_util_list">
-<a class="viewcode-back" href="../../../api/data_juicer.core.monitor.html#data_juicer.core.monitor.Monitor.analyze_resource_util_list">[docs]</a>
+<a class="viewcode-back" href="../../../api/data_juicer.core.html#data_juicer.core.Monitor.analyze_resource_util_list">[docs]</a>
     <span class="nd">@staticmethod</span>
     <span class="k">def</span><span class="w"> </span><span class="nf">analyze_resource_util_list</span><span class="p">(</span><span class="n">resource_util_list</span><span class="p">):</span>
 <span class="w">        </span><span class="sd">"""</span>
@@ -613,7 +616,7 @@
 
 
 <div class="viewcode-block" id="Monitor.analyze_single_resource_util">
-<a class="viewcode-back" href="../../../api/data_juicer.core.monitor.html#data_juicer.core.monitor.Monitor.analyze_single_resource_util">[docs]</a>
+<a class="viewcode-back" href="../../../api/data_juicer.core.html#data_juicer.core.Monitor.analyze_single_resource_util">[docs]</a>
     <span class="nd">@staticmethod</span>
     <span class="k">def</span><span class="w"> </span><span class="nf">analyze_single_resource_util</span><span class="p">(</span><span class="n">resource_util_dict</span><span class="p">):</span>
 <span class="w">        </span><span class="sd">"""</span>
@@ -645,7 +648,7 @@
 
 
 <div class="viewcode-block" id="Monitor.monitor_func">
-<a class="viewcode-back" href="../../../api/data_juicer.core.monitor.html#data_juicer.core.monitor.Monitor.monitor_func">[docs]</a>
+<a class="viewcode-back" href="../../../api/data_juicer.core.html#data_juicer.core.Monitor.monitor_func">[docs]</a>
     <span class="nd">@staticmethod</span>
     <span class="k">def</span><span class="w"> </span><span class="nf">monitor_func</span><span class="p">(</span><span class="n">func</span><span class="p">,</span> <span class="n">args</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">sample_interval</span><span class="o">=</span><span class="mf">0.5</span><span class="p">):</span>
 <span class="w">        </span><span class="sd">"""</span>

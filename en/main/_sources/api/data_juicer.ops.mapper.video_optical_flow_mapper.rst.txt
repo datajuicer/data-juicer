@@ -1,0 +1,7 @@
+data\_juicer.ops.mapper.video\_optical\_flow\_mapper module
+===========================================================
+
+.. automodule:: data_juicer.ops.mapper.video_optical_flow_mapper
+   :members:
+   :show-inheritance:
+   :undoc-members:

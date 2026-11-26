@@ -353,7 +353,9 @@
 <li class="toctree-l2"><a class="reference internal" href="docs/operators/mapper/video_human_3d_pose_mapper.html">video_human_3d_pose_mapper</a></li>
 <li class="toctree-l2"><a class="reference internal" href="docs/operators/mapper/video_human_tracks_extraction_mapper.html">video_human_tracks_extraction_mapper</a></li>
 <li class="toctree-l2"><a class="reference internal" href="docs/operators/mapper/video_human_tracks_face_demographic_mapper.html">video_human_tracks_face_demographic_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="docs/operators/mapper/video_normal_map_mapper.html">video_normal_map_mapper</a></li>
 <li class="toctree-l2"><a class="reference internal" href="docs/operators/mapper/video_object_segmenting_mapper.html">video_object_segmenting_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="docs/operators/mapper/video_optical_flow_mapper.html">video_optical_flow_mapper</a></li>
 <li class="toctree-l2"><a class="reference internal" href="docs/operators/mapper/video_remove_watermark_mapper.html">video_remove_watermark_mapper</a></li>
 <li class="toctree-l2"><a class="reference internal" href="docs/operators/mapper/video_resize_aspect_ratio_mapper.html">video_resize_aspect_ratio_mapper</a></li>
 <li class="toctree-l2"><a class="reference internal" href="docs/operators/mapper/video_resize_resolution_mapper.html">video_resize_resolution_mapper</a></li>
@@ -364,6 +366,7 @@
 <li class="toctree-l2"><a class="reference internal" href="docs/operators/mapper/video_tagging_from_frames_mapper.html">video_tagging_from_frames_mapper</a></li>
 <li class="toctree-l2"><a class="reference internal" href="docs/operators/mapper/video_trajectory_overlay_mapper.html">video_trajectory_overlay_mapper</a></li>
 <li class="toctree-l2"><a class="reference internal" href="docs/operators/mapper/video_undistort_mapper.html">video_undistort_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="docs/operators/mapper/video_universal_segmentation_mapper.html">video_universal_segmentation_mapper</a></li>
 <li class="toctree-l2"><a class="reference internal" href="docs/operators/mapper/video_whole_body_pose_estimation_mapper.html">video_whole_body_pose_estimation_mapper</a></li>
 <li class="toctree-l2"><a class="reference internal" href="docs/operators/mapper/whitespace_normalization_mapper.html">whitespace_normalization_mapper</a></li>
 </ul>
@@ -1127,14 +1130,14 @@
 </li>
       <li><a href="api/data_juicer.ops.mapper.html#data_juicer.ops.mapper.AgentSkillInsightMapper.__init__">__init__() （data_juicer.ops.mapper.AgentSkillInsightMapper 方法）</a>
 </li>
-  </ul></td>
-  <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="api/data_juicer.ops.mapper.html#data_juicer.ops.mapper.AgentToolTypeMapper.__init__">__init__() （data_juicer.ops.mapper.AgentToolTypeMapper 方法）</a>
 </li>
       <li><a href="api/data_juicer.ops.mapper.annotation.annotation_mapper.html#data_juicer.ops.mapper.annotation.annotation_mapper.BaseAnnotationMapper.__init__">__init__() （data_juicer.ops.mapper.annotation.annotation_mapper.BaseAnnotationMapper 方法）</a>
 </li>
       <li><a href="api/data_juicer.ops.mapper.annotation.annotation_mapper.html#data_juicer.ops.mapper.annotation.annotation_mapper.LabelStudioAnnotationMapper.__init__">__init__() （data_juicer.ops.mapper.annotation.annotation_mapper.LabelStudioAnnotationMapper 方法）</a>
 </li>
+  </ul></td>
+  <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="api/data_juicer.ops.mapper.annotation.human_preference_annotation_mapper.html#data_juicer.ops.mapper.annotation.human_preference_annotation_mapper.HumanPreferenceAnnotationMapper.__init__">__init__() （data_juicer.ops.mapper.annotation.human_preference_annotation_mapper.HumanPreferenceAnnotationMapper 方法）</a>
 </li>
       <li><a href="api/data_juicer.ops.mapper.audio_add_gaussian_noise_mapper.html#data_juicer.ops.mapper.audio_add_gaussian_noise_mapper.AudioAddGaussianNoiseMapper.__init__">__init__() （data_juicer.ops.mapper.audio_add_gaussian_noise_mapper.AudioAddGaussianNoiseMapper 方法）</a>
@@ -1521,7 +1524,11 @@
 </li>
       <li><a href="api/data_juicer.ops.mapper.video_human_tracks_face_demographic_mapper.html#data_juicer.ops.mapper.video_human_tracks_face_demographic_mapper.VideoHumantrackFaceDemographicMapper.__init__">__init__() （data_juicer.ops.mapper.video_human_tracks_face_demographic_mapper.VideoHumantrackFaceDemographicMapper 方法）</a>
 </li>
+      <li><a href="api/data_juicer.ops.mapper.video_normal_map_mapper.html#data_juicer.ops.mapper.video_normal_map_mapper.VideoNormalMapMapper.__init__">__init__() （data_juicer.ops.mapper.video_normal_map_mapper.VideoNormalMapMapper 方法）</a>
+</li>
       <li><a href="api/data_juicer.ops.mapper.video_object_segmenting_mapper.html#data_juicer.ops.mapper.video_object_segmenting_mapper.VideoObjectSegmentingMapper.__init__">__init__() （data_juicer.ops.mapper.video_object_segmenting_mapper.VideoObjectSegmentingMapper 方法）</a>
+</li>
+      <li><a href="api/data_juicer.ops.mapper.video_optical_flow_mapper.html#data_juicer.ops.mapper.video_optical_flow_mapper.VideoOpticalFlowMapper.__init__">__init__() （data_juicer.ops.mapper.video_optical_flow_mapper.VideoOpticalFlowMapper 方法）</a>
 </li>
       <li><a href="api/data_juicer.ops.mapper.video_remove_watermark_mapper.html#data_juicer.ops.mapper.video_remove_watermark_mapper.VideoRemoveWatermarkMapper.__init__">__init__() （data_juicer.ops.mapper.video_remove_watermark_mapper.VideoRemoveWatermarkMapper 方法）</a>
 </li>
@@ -1542,6 +1549,8 @@
       <li><a href="api/data_juicer.ops.mapper.video_trajectory_overlay_mapper.html#data_juicer.ops.mapper.video_trajectory_overlay_mapper.VideoTrajectoryOverlayMapper.__init__">__init__() （data_juicer.ops.mapper.video_trajectory_overlay_mapper.VideoTrajectoryOverlayMapper 方法）</a>
 </li>
       <li><a href="api/data_juicer.ops.mapper.video_undistort_mapper.html#data_juicer.ops.mapper.video_undistort_mapper.VideoUndistortMapper.__init__">__init__() （data_juicer.ops.mapper.video_undistort_mapper.VideoUndistortMapper 方法）</a>
+</li>
+      <li><a href="api/data_juicer.ops.mapper.video_universal_segmentation_mapper.html#data_juicer.ops.mapper.video_universal_segmentation_mapper.VideoUniversalSegmentationMapper.__init__">__init__() （data_juicer.ops.mapper.video_universal_segmentation_mapper.VideoUniversalSegmentationMapper 方法）</a>
 </li>
       <li><a href="api/data_juicer.ops.mapper.video_whole_body_pose_estimation_mapper.html#data_juicer.ops.mapper.video_whole_body_pose_estimation_mapper.VideoWholeBodyPoseEstimationMapper.__init__">__init__() （data_juicer.ops.mapper.video_whole_body_pose_estimation_mapper.VideoWholeBodyPoseEstimationMapper 方法）</a>
 </li>
@@ -1601,7 +1610,11 @@
 </li>
       <li><a href="api/data_juicer.ops.mapper.html#data_juicer.ops.mapper.VideoHumanTracksExtractionMapper.__init__">__init__() （data_juicer.ops.mapper.VideoHumanTracksExtractionMapper 方法）</a>
 </li>
+      <li><a href="api/data_juicer.ops.mapper.html#data_juicer.ops.mapper.VideoNormalMapMapper.__init__">__init__() （data_juicer.ops.mapper.VideoNormalMapMapper 方法）</a>
+</li>
       <li><a href="api/data_juicer.ops.mapper.html#data_juicer.ops.mapper.VideoObjectSegmentingMapper.__init__">__init__() （data_juicer.ops.mapper.VideoObjectSegmentingMapper 方法）</a>
+</li>
+      <li><a href="api/data_juicer.ops.mapper.html#data_juicer.ops.mapper.VideoOpticalFlowMapper.__init__">__init__() （data_juicer.ops.mapper.VideoOpticalFlowMapper 方法）</a>
 </li>
       <li><a href="api/data_juicer.ops.mapper.html#data_juicer.ops.mapper.VideoRemoveWatermarkMapper.__init__">__init__() （data_juicer.ops.mapper.VideoRemoveWatermarkMapper 方法）</a>
 </li>
@@ -1622,6 +1635,8 @@
       <li><a href="api/data_juicer.ops.mapper.html#data_juicer.ops.mapper.VideoTrajectoryOverlayMapper.__init__">__init__() （data_juicer.ops.mapper.VideoTrajectoryOverlayMapper 方法）</a>
 </li>
       <li><a href="api/data_juicer.ops.mapper.html#data_juicer.ops.mapper.VideoUndistortMapper.__init__">__init__() （data_juicer.ops.mapper.VideoUndistortMapper 方法）</a>
+</li>
+      <li><a href="api/data_juicer.ops.mapper.html#data_juicer.ops.mapper.VideoUniversalSegmentationMapper.__init__">__init__() （data_juicer.ops.mapper.VideoUniversalSegmentationMapper 方法）</a>
 </li>
       <li><a href="api/data_juicer.ops.mapper.html#data_juicer.ops.mapper.VideoWholeBodyPoseEstimationMapper.__init__">__init__() （data_juicer.ops.mapper.VideoWholeBodyPoseEstimationMapper 方法）</a>
 </li>
@@ -5042,8 +5057,6 @@
         <li><a href="api/data_juicer.ops.mapper.video_ffmpeg_wrapped_mapper.html#module-data_juicer.ops.mapper.video_ffmpeg_wrapped_mapper">module</a>
 </li>
       </ul></li>
-  </ul></td>
-  <td style="width: 33%; vertical-align: top;"><ul>
       <li>
     data_juicer.ops.mapper.video_hand_action_compute_mapper
 
@@ -5058,6 +5071,8 @@
         <li><a href="api/data_juicer.ops.mapper.video_hand_motion_smooth_mapper.html#module-data_juicer.ops.mapper.video_hand_motion_smooth_mapper">module</a>
 </li>
       </ul></li>
+  </ul></td>
+  <td style="width: 33%; vertical-align: top;"><ul>
       <li>
     data_juicer.ops.mapper.video_hand_reconstruction_hawor_mapper
 
@@ -5094,10 +5109,24 @@
 </li>
       </ul></li>
       <li>
+    data_juicer.ops.mapper.video_normal_map_mapper
+
+      <ul>
+        <li><a href="api/data_juicer.ops.mapper.video_normal_map_mapper.html#module-data_juicer.ops.mapper.video_normal_map_mapper">module</a>
+</li>
+      </ul></li>
+      <li>
     data_juicer.ops.mapper.video_object_segmenting_mapper
 
       <ul>
         <li><a href="api/data_juicer.ops.mapper.video_object_segmenting_mapper.html#module-data_juicer.ops.mapper.video_object_segmenting_mapper">module</a>
+</li>
+      </ul></li>
+      <li>
+    data_juicer.ops.mapper.video_optical_flow_mapper
+
+      <ul>
+        <li><a href="api/data_juicer.ops.mapper.video_optical_flow_mapper.html#module-data_juicer.ops.mapper.video_optical_flow_mapper">module</a>
 </li>
       </ul></li>
       <li>
@@ -5168,6 +5197,13 @@
 
       <ul>
         <li><a href="api/data_juicer.ops.mapper.video_undistort_mapper.html#module-data_juicer.ops.mapper.video_undistort_mapper">module</a>
+</li>
+      </ul></li>
+      <li>
+    data_juicer.ops.mapper.video_universal_segmentation_mapper
+
+      <ul>
+        <li><a href="api/data_juicer.ops.mapper.video_universal_segmentation_mapper.html#module-data_juicer.ops.mapper.video_universal_segmentation_mapper">module</a>
 </li>
       </ul></li>
       <li>
@@ -7179,6 +7215,10 @@
 </li>
       <li><a href="api/data_juicer.ops.base_op.html#data_juicer.ops.base_op.OP.get_env_spec">get_env_spec() （data_juicer.ops.base_op.OP 方法）</a>
 </li>
+      <li><a href="api/data_juicer.ops.mapper.video_normal_map_mapper.html#data_juicer.ops.mapper.video_normal_map_mapper.VideoNormalMapMapper.get_env_spec">get_env_spec() （data_juicer.ops.mapper.video_normal_map_mapper.VideoNormalMapMapper 方法）</a>
+</li>
+      <li><a href="api/data_juicer.ops.mapper.html#data_juicer.ops.mapper.VideoNormalMapMapper.get_env_spec">get_env_spec() （data_juicer.ops.mapper.VideoNormalMapMapper 方法）</a>
+</li>
       <li><a href="api/data_juicer.core.executor.event_logging_mixin.html#data_juicer.core.executor.event_logging_mixin.EventLogger.get_events">get_events() （data_juicer.core.executor.event_logging_mixin.EventLogger 方法）</a>
 </li>
       <li><a href="api/data_juicer.core.executor.event_logging_mixin.html#data_juicer.core.executor.event_logging_mixin.EventLoggingMixin.get_events">get_events() （data_juicer.core.executor.event_logging_mixin.EventLoggingMixin 方法）</a>
@@ -7211,10 +7251,10 @@
 </li>
       <li><a href="api/data_juicer.ops.deduplicator.ray_image_deduplicator.html#data_juicer.ops.deduplicator.ray_image_deduplicator.get_hash_method">get_hash_method()（在 data_juicer.ops.deduplicator.ray_image_deduplicator 模块中）</a>
 </li>
-      <li><a href="api/data_juicer.tools.hpo.objects.html#data_juicer.tools.hpo.objects.get_hpo_objective">get_hpo_objective()（在 data_juicer.tools.hpo.objects 模块中）</a>
-</li>
   </ul></td>
   <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="api/data_juicer.tools.hpo.objects.html#data_juicer.tools.hpo.objects.get_hpo_objective">get_hpo_objective()（在 data_juicer.tools.hpo.objects 模块中）</a>
+</li>
       <li><a href="api/data_juicer.config.html#data_juicer.config.get_init_configs">get_init_configs()（在 data_juicer.config 模块中）</a>
 </li>
       <li><a href="api/data_juicer.config.config.html#data_juicer.config.config.get_init_configs">get_init_configs()（在 data_juicer.config.config 模块中）</a>
@@ -8969,7 +9009,11 @@
 </li>
         <li><a href="api/data_juicer.ops.mapper.video_human_tracks_face_demographic_mapper.html#module-data_juicer.ops.mapper.video_human_tracks_face_demographic_mapper">data_juicer.ops.mapper.video_human_tracks_face_demographic_mapper</a>
 </li>
+        <li><a href="api/data_juicer.ops.mapper.video_normal_map_mapper.html#module-data_juicer.ops.mapper.video_normal_map_mapper">data_juicer.ops.mapper.video_normal_map_mapper</a>
+</li>
         <li><a href="api/data_juicer.ops.mapper.video_object_segmenting_mapper.html#module-data_juicer.ops.mapper.video_object_segmenting_mapper">data_juicer.ops.mapper.video_object_segmenting_mapper</a>
+</li>
+        <li><a href="api/data_juicer.ops.mapper.video_optical_flow_mapper.html#module-data_juicer.ops.mapper.video_optical_flow_mapper">data_juicer.ops.mapper.video_optical_flow_mapper</a>
 </li>
         <li><a href="api/data_juicer.ops.mapper.video_remove_watermark_mapper.html#module-data_juicer.ops.mapper.video_remove_watermark_mapper">data_juicer.ops.mapper.video_remove_watermark_mapper</a>
 </li>
@@ -8990,6 +9034,8 @@
         <li><a href="api/data_juicer.ops.mapper.video_trajectory_overlay_mapper.html#module-data_juicer.ops.mapper.video_trajectory_overlay_mapper">data_juicer.ops.mapper.video_trajectory_overlay_mapper</a>
 </li>
         <li><a href="api/data_juicer.ops.mapper.video_undistort_mapper.html#module-data_juicer.ops.mapper.video_undistort_mapper">data_juicer.ops.mapper.video_undistort_mapper</a>
+</li>
+        <li><a href="api/data_juicer.ops.mapper.video_universal_segmentation_mapper.html#module-data_juicer.ops.mapper.video_universal_segmentation_mapper">data_juicer.ops.mapper.video_universal_segmentation_mapper</a>
 </li>
         <li><a href="api/data_juicer.ops.mapper.video_whole_body_pose_estimation_mapper.html#module-data_juicer.ops.mapper.video_whole_body_pose_estimation_mapper">data_juicer.ops.mapper.video_whole_body_pose_estimation_mapper</a>
 </li>
@@ -9772,7 +9818,11 @@
 </li>
       <li><a href="api/data_juicer.ops.mapper.video_human_3d_pose_mapper.html#data_juicer.ops.mapper.video_human_3d_pose_mapper.VideoHuman3DPoseMapper.prepare_input">prepare_input() （data_juicer.ops.mapper.video_human_3d_pose_mapper.VideoHuman3DPoseMapper 方法）</a>
 </li>
+      <li><a href="api/data_juicer.ops.mapper.video_normal_map_mapper.html#data_juicer.ops.mapper.video_normal_map_mapper.VideoNormalMapMapper.prepare_input">prepare_input() （data_juicer.ops.mapper.video_normal_map_mapper.VideoNormalMapMapper 方法）</a>
+</li>
       <li><a href="api/data_juicer.ops.mapper.html#data_juicer.ops.mapper.VideoHuman3DPoseMapper.prepare_input">prepare_input() （data_juicer.ops.mapper.VideoHuman3DPoseMapper 方法）</a>
+</li>
+      <li><a href="api/data_juicer.ops.mapper.html#data_juicer.ops.mapper.VideoNormalMapMapper.prepare_input">prepare_input() （data_juicer.ops.mapper.VideoNormalMapMapper 方法）</a>
 </li>
       <li><a href="api/data_juicer.utils.model_utils.html#data_juicer.utils.model_utils.prepare_kenlm_model">prepare_kenlm_model()（在 data_juicer.utils.model_utils 模块中）</a>
 </li>
@@ -9790,7 +9840,11 @@
 </li>
       <li><a href="api/data_juicer.utils.model_utils.html#data_juicer.utils.model_utils.prepare_nltk_pos_tagger">prepare_nltk_pos_tagger()（在 data_juicer.utils.model_utils 模块中）</a>
 </li>
+      <li><a href="api/data_juicer.utils.model_utils.html#data_juicer.utils.model_utils.prepare_normal_map_metric3d">prepare_normal_map_metric3d()（在 data_juicer.utils.model_utils 模块中）</a>
+</li>
       <li><a href="api/data_juicer.utils.model_utils.html#data_juicer.utils.model_utils.prepare_opencv_classifier">prepare_opencv_classifier()（在 data_juicer.utils.model_utils 模块中）</a>
+</li>
+      <li><a href="api/data_juicer.utils.model_utils.html#data_juicer.utils.model_utils.prepare_optical_flow_raft">prepare_optical_flow_raft()（在 data_juicer.utils.model_utils 模块中）</a>
 </li>
       <li><a href="api/data_juicer.utils.model_utils.html#data_juicer.utils.model_utils.prepare_qwen_vl_inputs_for_vllm">prepare_qwen_vl_inputs_for_vllm()（在 data_juicer.utils.model_utils 模块中）</a>
 </li>
@@ -10134,10 +10188,10 @@
 </li>
       <li><a href="api/data_juicer.ops.mapper.html#data_juicer.ops.mapper.RemoveBibliographyMapper.process_batched">process_batched() （data_juicer.ops.mapper.RemoveBibliographyMapper 方法）</a>
 </li>
-  </ul></td>
-  <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="api/data_juicer.ops.mapper.html#data_juicer.ops.mapper.RemoveCommentsMapper.process_batched">process_batched() （data_juicer.ops.mapper.RemoveCommentsMapper 方法）</a>
 </li>
+  </ul></td>
+  <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="api/data_juicer.ops.mapper.html#data_juicer.ops.mapper.RemoveHeaderMapper.process_batched">process_batched() （data_juicer.ops.mapper.RemoveHeaderMapper 方法）</a>
 </li>
       <li><a href="api/data_juicer.ops.mapper.html#data_juicer.ops.mapper.RemoveLongWordsMapper.process_batched">process_batched() （data_juicer.ops.mapper.RemoveLongWordsMapper 方法）</a>
@@ -10672,7 +10726,11 @@
 </li>
       <li><a href="api/data_juicer.ops.mapper.video_human_tracks_face_demographic_mapper.html#data_juicer.ops.mapper.video_human_tracks_face_demographic_mapper.VideoHumantrackFaceDemographicMapper.process_single">process_single() （data_juicer.ops.mapper.video_human_tracks_face_demographic_mapper.VideoHumantrackFaceDemographicMapper 方法）</a>
 </li>
+      <li><a href="api/data_juicer.ops.mapper.video_normal_map_mapper.html#data_juicer.ops.mapper.video_normal_map_mapper.VideoNormalMapMapper.process_single">process_single() （data_juicer.ops.mapper.video_normal_map_mapper.VideoNormalMapMapper 方法）</a>
+</li>
       <li><a href="api/data_juicer.ops.mapper.video_object_segmenting_mapper.html#data_juicer.ops.mapper.video_object_segmenting_mapper.VideoObjectSegmentingMapper.process_single">process_single() （data_juicer.ops.mapper.video_object_segmenting_mapper.VideoObjectSegmentingMapper 方法）</a>
+</li>
+      <li><a href="api/data_juicer.ops.mapper.video_optical_flow_mapper.html#data_juicer.ops.mapper.video_optical_flow_mapper.VideoOpticalFlowMapper.process_single">process_single() （data_juicer.ops.mapper.video_optical_flow_mapper.VideoOpticalFlowMapper 方法）</a>
 </li>
       <li><a href="api/data_juicer.ops.mapper.video_remove_watermark_mapper.html#data_juicer.ops.mapper.video_remove_watermark_mapper.VideoRemoveWatermarkMapper.process_single">process_single() （data_juicer.ops.mapper.video_remove_watermark_mapper.VideoRemoveWatermarkMapper 方法）</a>
 </li>
@@ -10689,6 +10747,8 @@
       <li><a href="api/data_juicer.ops.mapper.video_trajectory_overlay_mapper.html#data_juicer.ops.mapper.video_trajectory_overlay_mapper.VideoTrajectoryOverlayMapper.process_single">process_single() （data_juicer.ops.mapper.video_trajectory_overlay_mapper.VideoTrajectoryOverlayMapper 方法）</a>
 </li>
       <li><a href="api/data_juicer.ops.mapper.video_undistort_mapper.html#data_juicer.ops.mapper.video_undistort_mapper.VideoUndistortMapper.process_single">process_single() （data_juicer.ops.mapper.video_undistort_mapper.VideoUndistortMapper 方法）</a>
+</li>
+      <li><a href="api/data_juicer.ops.mapper.video_universal_segmentation_mapper.html#data_juicer.ops.mapper.video_universal_segmentation_mapper.VideoUniversalSegmentationMapper.process_single">process_single() （data_juicer.ops.mapper.video_universal_segmentation_mapper.VideoUniversalSegmentationMapper 方法）</a>
 </li>
       <li><a href="api/data_juicer.ops.mapper.video_whole_body_pose_estimation_mapper.html#data_juicer.ops.mapper.video_whole_body_pose_estimation_mapper.VideoWholeBodyPoseEstimationMapper.process_single">process_single() （data_juicer.ops.mapper.video_whole_body_pose_estimation_mapper.VideoWholeBodyPoseEstimationMapper 方法）</a>
 </li>
@@ -10738,7 +10798,11 @@
 </li>
       <li><a href="api/data_juicer.ops.mapper.html#data_juicer.ops.mapper.VideoHumanTracksExtractionMapper.process_single">process_single() （data_juicer.ops.mapper.VideoHumanTracksExtractionMapper 方法）</a>
 </li>
+      <li><a href="api/data_juicer.ops.mapper.html#data_juicer.ops.mapper.VideoNormalMapMapper.process_single">process_single() （data_juicer.ops.mapper.VideoNormalMapMapper 方法）</a>
+</li>
       <li><a href="api/data_juicer.ops.mapper.html#data_juicer.ops.mapper.VideoObjectSegmentingMapper.process_single">process_single() （data_juicer.ops.mapper.VideoObjectSegmentingMapper 方法）</a>
+</li>
+      <li><a href="api/data_juicer.ops.mapper.html#data_juicer.ops.mapper.VideoOpticalFlowMapper.process_single">process_single() （data_juicer.ops.mapper.VideoOpticalFlowMapper 方法）</a>
 </li>
       <li><a href="api/data_juicer.ops.mapper.html#data_juicer.ops.mapper.VideoRemoveWatermarkMapper.process_single">process_single() （data_juicer.ops.mapper.VideoRemoveWatermarkMapper 方法）</a>
 </li>
@@ -10755,6 +10819,8 @@
       <li><a href="api/data_juicer.ops.mapper.html#data_juicer.ops.mapper.VideoTrajectoryOverlayMapper.process_single">process_single() （data_juicer.ops.mapper.VideoTrajectoryOverlayMapper 方法）</a>
 </li>
       <li><a href="api/data_juicer.ops.mapper.html#data_juicer.ops.mapper.VideoUndistortMapper.process_single">process_single() （data_juicer.ops.mapper.VideoUndistortMapper 方法）</a>
+</li>
+      <li><a href="api/data_juicer.ops.mapper.html#data_juicer.ops.mapper.VideoUniversalSegmentationMapper.process_single">process_single() （data_juicer.ops.mapper.VideoUniversalSegmentationMapper 方法）</a>
 </li>
       <li><a href="api/data_juicer.ops.mapper.html#data_juicer.ops.mapper.VideoWholeBodyPoseEstimationMapper.process_single">process_single() （data_juicer.ops.mapper.VideoWholeBodyPoseEstimationMapper 方法）</a>
 </li>
@@ -10870,6 +10936,10 @@
 <h2 id="R">R</h2>
 <table style="width: 100%" class="indextable genindextable"><tr>
   <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="api/data_juicer.ops.mapper.video_optical_flow_mapper.html#data_juicer.ops.mapper.video_optical_flow_mapper.VideoOpticalFlowMapper.raft_preprocess">raft_preprocess() （data_juicer.ops.mapper.video_optical_flow_mapper.VideoOpticalFlowMapper 方法）</a>
+</li>
+      <li><a href="api/data_juicer.ops.mapper.html#data_juicer.ops.mapper.VideoOpticalFlowMapper.raft_preprocess">raft_preprocess() （data_juicer.ops.mapper.VideoOpticalFlowMapper 方法）</a>
+</li>
       <li><a href="api/data_juicer.utils.sample.html#data_juicer.utils.sample.random_sample">random_sample()（在 data_juicer.utils.sample 模块中）</a>
 </li>
       <li><a href="api/data_juicer.ops.selector.html#data_juicer.ops.selector.RandomSelector">RandomSelector（data_juicer.ops.selector 中的类）</a>
@@ -11080,10 +11150,10 @@
 </li>
       <li><a href="api/data_juicer.ops.mapper.html#data_juicer.ops.mapper.RemoveBibliographyMapper">RemoveBibliographyMapper（data_juicer.ops.mapper 中的类）</a>
 </li>
-      <li><a href="api/data_juicer.ops.mapper.remove_bibliography_mapper.html#data_juicer.ops.mapper.remove_bibliography_mapper.RemoveBibliographyMapper">RemoveBibliographyMapper（data_juicer.ops.mapper.remove_bibliography_mapper 中的类）</a>
-</li>
   </ul></td>
   <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="api/data_juicer.ops.mapper.remove_bibliography_mapper.html#data_juicer.ops.mapper.remove_bibliography_mapper.RemoveBibliographyMapper">RemoveBibliographyMapper（data_juicer.ops.mapper.remove_bibliography_mapper 中的类）</a>
+</li>
       <li><a href="api/data_juicer.ops.mapper.html#data_juicer.ops.mapper.RemoveCommentsMapper">RemoveCommentsMapper（data_juicer.ops.mapper 中的类）</a>
 </li>
       <li><a href="api/data_juicer.ops.mapper.remove_comments_mapper.html#data_juicer.ops.mapper.remove_comments_mapper.RemoveCommentsMapper">RemoveCommentsMapper（data_juicer.ops.mapper.remove_comments_mapper 中的类）</a>
@@ -12122,15 +12192,21 @@
 </li>
       <li><a href="api/data_juicer.utils.constant.html#data_juicer.utils.constant.StatsKeysConstant.video_motion_score">video_motion_score（data_juicer.utils.constant.StatsKeysConstant 属性）</a>
 </li>
+      <li><a href="api/data_juicer.utils.constant.html#data_juicer.utils.constant.MetaKeys.video_normal_map_tags">video_normal_map_tags（data_juicer.utils.constant.MetaKeys 属性）</a>
+</li>
       <li><a href="api/data_juicer.utils.constant.html#data_juicer.utils.constant.StatsKeysConstant.video_nsfw_score">video_nsfw_score（data_juicer.utils.constant.StatsKeysConstant 属性）</a>
 </li>
       <li><a href="api/data_juicer.utils.constant.html#data_juicer.utils.constant.MetaKeys.video_object_segment_tags">video_object_segment_tags（data_juicer.utils.constant.MetaKeys 属性）</a>
 </li>
       <li><a href="api/data_juicer.utils.constant.html#data_juicer.utils.constant.StatsKeysConstant.video_ocr_area_ratio">video_ocr_area_ratio（data_juicer.utils.constant.StatsKeysConstant 属性）</a>
 </li>
+      <li><a href="api/data_juicer.utils.constant.html#data_juicer.utils.constant.MetaKeys.video_optical_flow_tags">video_optical_flow_tags（data_juicer.utils.constant.MetaKeys 属性）</a>
+</li>
       <li><a href="api/data_juicer.utils.constant.html#data_juicer.utils.constant.MetaKeys.video_optical_flow">video_optical_flow（data_juicer.utils.constant.MetaKeys 属性）</a>
 </li>
       <li><a href="api/data_juicer.utils.constant.html#data_juicer.utils.constant.MetaKeys.video_track_is_child">video_track_is_child（data_juicer.utils.constant.MetaKeys 属性）</a>
+</li>
+      <li><a href="api/data_juicer.utils.constant.html#data_juicer.utils.constant.MetaKeys.video_universal_segmentation_tags">video_universal_segmentation_tags（data_juicer.utils.constant.MetaKeys 属性）</a>
 </li>
       <li><a href="api/data_juicer.utils.constant.html#data_juicer.utils.constant.StatsKeysConstant.video_watermark_prob">video_watermark_prob（data_juicer.utils.constant.StatsKeysConstant 属性）</a>
 </li>
@@ -12214,14 +12290,14 @@
 </li>
       <li><a href="api/data_juicer.ops.mapper.video_clip_reassembly_mapper.html#data_juicer.ops.mapper.video_clip_reassembly_mapper.VideoClipReassemblyMapper">VideoClipReassemblyMapper（data_juicer.ops.mapper.video_clip_reassembly_mapper 中的类）</a>
 </li>
-  </ul></td>
-  <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="api/data_juicer.ops.deduplicator.html#data_juicer.ops.deduplicator.VideoDeduplicator">VideoDeduplicator（data_juicer.ops.deduplicator 中的类）</a>
 </li>
       <li><a href="api/data_juicer.ops.deduplicator.video_deduplicator.html#data_juicer.ops.deduplicator.video_deduplicator.VideoDeduplicator">VideoDeduplicator（data_juicer.ops.deduplicator.video_deduplicator 中的类）</a>
 </li>
       <li><a href="api/data_juicer.ops.mapper.html#data_juicer.ops.mapper.VideoDepthEstimationMapper">VideoDepthEstimationMapper（data_juicer.ops.mapper 中的类）</a>
 </li>
+  </ul></td>
+  <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="api/data_juicer.ops.mapper.video_depth_estimation_mapper.html#data_juicer.ops.mapper.video_depth_estimation_mapper.VideoDepthEstimationMapper">VideoDepthEstimationMapper（data_juicer.ops.mapper.video_depth_estimation_mapper 中的类）</a>
 </li>
       <li><a href="api/data_juicer.ops.filter.html#data_juicer.ops.filter.VideoDurationFilter">VideoDurationFilter（data_juicer.ops.filter 中的类）</a>
@@ -12292,6 +12368,10 @@
 </li>
       <li><a href="api/data_juicer.ops.filter.video_motion_score_raft_filter.html#data_juicer.ops.filter.video_motion_score_raft_filter.VideoMotionScoreRaftFilter">VideoMotionScoreRaftFilter（data_juicer.ops.filter.video_motion_score_raft_filter 中的类）</a>
 </li>
+      <li><a href="api/data_juicer.ops.mapper.html#data_juicer.ops.mapper.VideoNormalMapMapper">VideoNormalMapMapper（data_juicer.ops.mapper 中的类）</a>
+</li>
+      <li><a href="api/data_juicer.ops.mapper.video_normal_map_mapper.html#data_juicer.ops.mapper.video_normal_map_mapper.VideoNormalMapMapper">VideoNormalMapMapper（data_juicer.ops.mapper.video_normal_map_mapper 中的类）</a>
+</li>
       <li><a href="api/data_juicer.ops.filter.html#data_juicer.ops.filter.VideoNSFWFilter">VideoNSFWFilter（data_juicer.ops.filter 中的类）</a>
 </li>
       <li><a href="api/data_juicer.ops.filter.video_nsfw_filter.html#data_juicer.ops.filter.video_nsfw_filter.VideoNSFWFilter">VideoNSFWFilter（data_juicer.ops.filter.video_nsfw_filter 中的类）</a>
@@ -12303,6 +12383,10 @@
       <li><a href="api/data_juicer.ops.filter.html#data_juicer.ops.filter.VideoOcrAreaRatioFilter">VideoOcrAreaRatioFilter（data_juicer.ops.filter 中的类）</a>
 </li>
       <li><a href="api/data_juicer.ops.filter.video_ocr_area_ratio_filter.html#data_juicer.ops.filter.video_ocr_area_ratio_filter.VideoOcrAreaRatioFilter">VideoOcrAreaRatioFilter（data_juicer.ops.filter.video_ocr_area_ratio_filter 中的类）</a>
+</li>
+      <li><a href="api/data_juicer.ops.mapper.html#data_juicer.ops.mapper.VideoOpticalFlowMapper">VideoOpticalFlowMapper（data_juicer.ops.mapper 中的类）</a>
+</li>
+      <li><a href="api/data_juicer.ops.mapper.video_optical_flow_mapper.html#data_juicer.ops.mapper.video_optical_flow_mapper.VideoOpticalFlowMapper">VideoOpticalFlowMapper（data_juicer.ops.mapper.video_optical_flow_mapper 中的类）</a>
 </li>
       <li><a href="api/data_juicer.utils.video_utils.html#data_juicer.utils.video_utils.VideoReader">VideoReader（data_juicer.utils.video_utils 中的类）</a>
 </li>
@@ -12354,6 +12438,10 @@
 </li>
       <li><a href="api/data_juicer.ops.mapper.video_undistort_mapper.html#data_juicer.ops.mapper.video_undistort_mapper.VideoUndistortMapper">VideoUndistortMapper（data_juicer.ops.mapper.video_undistort_mapper 中的类）</a>
 </li>
+      <li><a href="api/data_juicer.ops.mapper.html#data_juicer.ops.mapper.VideoUniversalSegmentationMapper">VideoUniversalSegmentationMapper（data_juicer.ops.mapper 中的类）</a>
+</li>
+      <li><a href="api/data_juicer.ops.mapper.video_universal_segmentation_mapper.html#data_juicer.ops.mapper.video_universal_segmentation_mapper.VideoUniversalSegmentationMapper">VideoUniversalSegmentationMapper（data_juicer.ops.mapper.video_universal_segmentation_mapper 中的类）</a>
+</li>
       <li><a href="api/data_juicer.ops.filter.html#data_juicer.ops.filter.VideoWatermarkFilter">VideoWatermarkFilter（data_juicer.ops.filter 中的类）</a>
 </li>
       <li><a href="api/data_juicer.ops.filter.video_watermark_filter.html#data_juicer.ops.filter.video_watermark_filter.VideoWatermarkFilter">VideoWatermarkFilter（data_juicer.ops.filter.video_watermark_filter 中的类）</a>
@@ -12389,6 +12477,14 @@
       <li><a href="api/data_juicer.ops.filter.general_field_filter.html#data_juicer.ops.filter.general_field_filter.ExpressionTransformer.visit_UnaryOp">visit_UnaryOp() （data_juicer.ops.filter.general_field_filter.ExpressionTransformer 方法）</a>
 </li>
       <li><a href="api/data_juicer.utils.ASD_mapper_utils.html#data_juicer.utils.ASD_mapper_utils.visualization">visualization()（在 data_juicer.utils.ASD_mapper_utils 模块中）</a>
+</li>
+      <li><a href="api/data_juicer.ops.mapper.video_universal_segmentation_mapper.html#data_juicer.ops.mapper.video_universal_segmentation_mapper.VideoUniversalSegmentationMapper.visualization_instance_or_panoptic">visualization_instance_or_panoptic() （data_juicer.ops.mapper.video_universal_segmentation_mapper.VideoUniversalSegmentationMapper 方法）</a>
+</li>
+      <li><a href="api/data_juicer.ops.mapper.html#data_juicer.ops.mapper.VideoUniversalSegmentationMapper.visualization_instance_or_panoptic">visualization_instance_or_panoptic() （data_juicer.ops.mapper.VideoUniversalSegmentationMapper 方法）</a>
+</li>
+      <li><a href="api/data_juicer.ops.mapper.video_universal_segmentation_mapper.html#data_juicer.ops.mapper.video_universal_segmentation_mapper.VideoUniversalSegmentationMapper.visualization_semantic">visualization_semantic() （data_juicer.ops.mapper.video_universal_segmentation_mapper.VideoUniversalSegmentationMapper 方法）</a>
+</li>
+      <li><a href="api/data_juicer.ops.mapper.html#data_juicer.ops.mapper.VideoUniversalSegmentationMapper.visualization_semantic">visualization_semantic() （data_juicer.ops.mapper.VideoUniversalSegmentationMapper 方法）</a>
 </li>
       <li><a href="api/data_juicer.core.executor.pipeline_dag.html#data_juicer.core.executor.pipeline_dag.PipelineDAG.visualize">visualize() （data_juicer.core.executor.pipeline_dag.PipelineDAG 方法）</a>
 </li>

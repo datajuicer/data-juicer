@@ -132,6 +132,179 @@
   <section id="module-data_juicer.ops.mapper">
 <span id="data-juicer-ops-mapper"></span><h1>data_juicer.ops.mapper<a class="headerlink" href="#module-data_juicer.ops.mapper" title="Link to this heading">¶</a></h1>
 <dl class="py class">
+<dt class="sig sig-object py" id="data_juicer.ops.mapper.VideoUniversalSegmentationMapper">
+<span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">data_juicer.ops.mapper.</span></span><span class="sig-name descname"><span class="pre">VideoUniversalSegmentationMapper</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/data_juicer/ops/mapper/video_universal_segmentation_mapper.html#VideoUniversalSegmentationMapper"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#data_juicer.ops.mapper.VideoUniversalSegmentationMapper" title="Link to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="data_juicer.ops.base_op.html#data_juicer.ops.base_op.Mapper" title="data_juicer.ops.base_op.Mapper"><code class="xref py py-class docutils literal notranslate"><span class="pre">Mapper</span></code></a></p>
+<p>Generate semantic segmentation, instance segmentation,
+and panoptic segmentation information for videos
+(with the OneFormer model).</p>
+<dl class="py method">
+<dt class="sig sig-object py" id="data_juicer.ops.mapper.VideoUniversalSegmentationMapper.__init__">
+<span class="sig-name descname"><span class="pre">__init__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">model_path</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">'shi-labs/oneformer_ade20k_swin_large'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">if_output_semantic_segmentation</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">if_output_instance_segmentation</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">if_output_panoptic_segmentation</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">if_save_visualization</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">save_visualization_dir</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">'/home/runner/.cache/data_juicer/assets'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">frame_num</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Annotated</span><span class="p"><span class="pre">[</span></span><span class="pre">int</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">Gt</span><span class="p"><span class="pre">(</span></span><span class="n"><span class="pre">gt</span></span><span class="o"><span class="pre">=</span></span><span class="m"><span class="pre">0</span></span><span class="p"><span class="pre">)</span></span><span class="p"><span class="pre">]</span></span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">3</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">duration</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">float</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">frame_dir</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">'/home/runner/.cache/data_juicer/assets'</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/data_juicer/ops/mapper/video_universal_segmentation_mapper.html#VideoUniversalSegmentationMapper.__init__"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#data_juicer.ops.mapper.VideoUniversalSegmentationMapper.__init__" title="Link to this definition">¶</a></dt>
+<dd><p>Initialization method.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>model_path</strong> – The model path to the OneFormer model (huggingface).</p></li>
+<li><p><strong>if_output_semantic_segmentation</strong> – Determines whether to
+output semantic segmentation inferred by OneFormer.</p></li>
+<li><p><strong>if_output_instance_segmentation</strong> – Determines whether to
+output instance segmentation inferred by OneFormer.</p></li>
+<li><p><strong>if_output_panoptic_segmentation</strong> – Determines whether to
+output panoptic segmentation inferred by OneFormer.</p></li>
+<li><p><strong>if_save_visualization</strong> – Whether to save visualization results.</p></li>
+<li><p><strong>save_visualization_dir</strong> – The path for saving visualization results.</p></li>
+<li><p><strong>frame_num</strong> – The number of frames to be extracted uniformly from
+the video. If it’s 1, only the middle frame will be extracted. If
+it’s 2, only the first and the last frames will be extracted. If
+it’s larger than 2, in addition to the first and the last frames,
+other frames will be extracted uniformly within the video duration.
+If “duration” &gt; 0, frame_num is the number of frames per segment.</p></li>
+<li><p><strong>duration</strong> – The duration of each segment in seconds.
+If 0, frames are extracted from the entire video.
+If duration &gt; 0, the video is segmented into multiple segments
+based on duration, and frames are extracted from each segment.</p></li>
+<li><p><strong>frame_dir</strong> – Output directory to save extracted frames.</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="data_juicer.ops.mapper.VideoUniversalSegmentationMapper.visualization_semantic">
+<span class="sig-name descname"><span class="pre">visualization_semantic</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">predicted_semantic_map</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">model</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">image_pil</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/data_juicer/ops/mapper/video_universal_segmentation_mapper.html#VideoUniversalSegmentationMapper.visualization_semantic"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#data_juicer.ops.mapper.VideoUniversalSegmentationMapper.visualization_semantic" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="data_juicer.ops.mapper.VideoUniversalSegmentationMapper.visualization_instance_or_panoptic">
+<span class="sig-name descname"><span class="pre">visualization_instance_or_panoptic</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">predicted_results</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">model</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">image_pil</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/data_juicer/ops/mapper/video_universal_segmentation_mapper.html#VideoUniversalSegmentationMapper.visualization_instance_or_panoptic"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#data_juicer.ops.mapper.VideoUniversalSegmentationMapper.visualization_instance_or_panoptic" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="data_juicer.ops.mapper.VideoUniversalSegmentationMapper.process_single">
+<span class="sig-name descname"><span class="pre">process_single</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">sample</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">rank</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/data_juicer/ops/mapper/video_universal_segmentation_mapper.html#VideoUniversalSegmentationMapper.process_single"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#data_juicer.ops.mapper.VideoUniversalSegmentationMapper.process_single" title="Link to this definition">¶</a></dt>
+<dd><p>For sample level, sample –&gt; sample</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>sample</strong> – sample to process</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>processed sample</p>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="data_juicer.ops.mapper.VideoOpticalFlowMapper">
+<span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">data_juicer.ops.mapper.</span></span><span class="sig-name descname"><span class="pre">VideoOpticalFlowMapper</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/data_juicer/ops/mapper/video_optical_flow_mapper.html#VideoOpticalFlowMapper"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#data_juicer.ops.mapper.VideoOpticalFlowMapper" title="Link to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="data_juicer.ops.base_op.html#data_juicer.ops.base_op.Mapper" title="data_juicer.ops.base_op.Mapper"><code class="xref py py-class docutils literal notranslate"><span class="pre">Mapper</span></code></a></p>
+<p>Generate optical flow information for videos.</p>
+<dl class="py method">
+<dt class="sig sig-object py" id="data_juicer.ops.mapper.VideoOpticalFlowMapper.__init__">
+<span class="sig-name descname"><span class="pre">__init__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">if_save_visualization</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">save_visualization_dir</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">'/home/runner/.cache/data_juicer/assets'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">frame_num</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Annotated</span><span class="p"><span class="pre">[</span></span><span class="pre">int</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">Gt</span><span class="p"><span class="pre">(</span></span><span class="n"><span class="pre">gt</span></span><span class="o"><span class="pre">=</span></span><span class="m"><span class="pre">0</span></span><span class="p"><span class="pre">)</span></span><span class="p"><span class="pre">]</span></span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">3</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">duration</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">float</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">frame_dir</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">'/home/runner/.cache/data_juicer/assets'</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/data_juicer/ops/mapper/video_optical_flow_mapper.html#VideoOpticalFlowMapper.__init__"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#data_juicer.ops.mapper.VideoOpticalFlowMapper.__init__" title="Link to this definition">¶</a></dt>
+<dd><p>Initialization method.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>if_save_visualization</strong> – Whether to save visualization results.</p></li>
+<li><p><strong>save_visualization_dir</strong> – The path for saving visualization results.</p></li>
+<li><p><strong>frame_num</strong> – The number of frames to be extracted uniformly from
+the video. If it’s 1, only the middle frame will be extracted. If
+it’s 2, only the first and the last frames will be extracted. If
+it’s larger than 2, in addition to the first and the last frames,
+other frames will be extracted uniformly within the video duration.
+If “duration” &gt; 0, frame_num is the number of frames per segment.</p></li>
+<li><p><strong>duration</strong> – The duration of each segment in seconds.
+If 0, frames are extracted from the entire video.
+If duration &gt; 0, the video is segmented into multiple segments
+based on duration, and frames are extracted from each segment.</p></li>
+<li><p><strong>frame_dir</strong> – Output directory to save extracted frames.</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="data_juicer.ops.mapper.VideoOpticalFlowMapper.raft_preprocess">
+<span class="sig-name descname"><span class="pre">raft_preprocess</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">img1_batch</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">img2_batch</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">transforms</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/data_juicer/ops/mapper/video_optical_flow_mapper.html#VideoOpticalFlowMapper.raft_preprocess"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#data_juicer.ops.mapper.VideoOpticalFlowMapper.raft_preprocess" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="data_juicer.ops.mapper.VideoOpticalFlowMapper.process_single">
+<span class="sig-name descname"><span class="pre">process_single</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">sample</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">rank</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/data_juicer/ops/mapper/video_optical_flow_mapper.html#VideoOpticalFlowMapper.process_single"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#data_juicer.ops.mapper.VideoOpticalFlowMapper.process_single" title="Link to this definition">¶</a></dt>
+<dd><p>For sample level, sample –&gt; sample</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>sample</strong> – sample to process</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>processed sample</p>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="data_juicer.ops.mapper.VideoNormalMapMapper">
+<span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">data_juicer.ops.mapper.</span></span><span class="sig-name descname"><span class="pre">VideoNormalMapMapper</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/data_juicer/ops/mapper/video_normal_map_mapper.html#VideoNormalMapMapper"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#data_juicer.ops.mapper.VideoNormalMapMapper" title="Link to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="data_juicer.ops.base_op.html#data_juicer.ops.base_op.Mapper" title="data_juicer.ops.base_op.Mapper"><code class="xref py py-class docutils literal notranslate"><span class="pre">Mapper</span></code></a></p>
+<p>Generate normal maps for videos (with the Metric3D model).</p>
+<dl class="py method">
+<dt class="sig sig-object py" id="data_juicer.ops.mapper.VideoNormalMapMapper.__init__">
+<span class="sig-name descname"><span class="pre">__init__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">model_path</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">'onnx-community/metric3d-vit-large/onnx/model.onnx'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">if_save_visualization</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">save_visualization_dir</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">'/home/runner/.cache/data_juicer/assets'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">frame_num</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Annotated</span><span class="p"><span class="pre">[</span></span><span class="pre">int</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">Gt</span><span class="p"><span class="pre">(</span></span><span class="n"><span class="pre">gt</span></span><span class="o"><span class="pre">=</span></span><span class="m"><span class="pre">0</span></span><span class="p"><span class="pre">)</span></span><span class="p"><span class="pre">]</span></span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">3</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">duration</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">float</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">frame_dir</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">'/home/runner/.cache/data_juicer/assets'</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/data_juicer/ops/mapper/video_normal_map_mapper.html#VideoNormalMapMapper.__init__"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#data_juicer.ops.mapper.VideoNormalMapMapper.__init__" title="Link to this definition">¶</a></dt>
+<dd><p>Initialization method.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>model_path</strong> – The path to the Metric3D model.</p></li>
+<li><p><strong>if_save_visualization</strong> – Whether to save visualization results.</p></li>
+<li><p><strong>save_visualization_dir</strong> – The path for saving visualization results.</p></li>
+<li><p><strong>frame_num</strong> – The number of frames to be extracted uniformly from
+the video. If it’s 1, only the middle frame will be extracted. If
+it’s 2, only the first and the last frames will be extracted. If
+it’s larger than 2, in addition to the first and the last frames,
+other frames will be extracted uniformly within the video duration.
+If “duration” &gt; 0, frame_num is the number of frames per segment.</p></li>
+<li><p><strong>duration</strong> – The duration of each segment in seconds.
+If 0, frames are extracted from the entire video.
+If duration &gt; 0, the video is segmented into multiple segments
+based on duration, and frames are extracted from each segment.</p></li>
+<li><p><strong>frame_dir</strong> – Output directory to save extracted frames.</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="data_juicer.ops.mapper.VideoNormalMapMapper.get_env_spec">
+<span class="sig-name descname"><span class="pre">get_env_spec</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/data_juicer/ops/mapper/video_normal_map_mapper.html#VideoNormalMapMapper.get_env_spec"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#data_juicer.ops.mapper.VideoNormalMapMapper.get_env_spec" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="data_juicer.ops.mapper.VideoNormalMapMapper.prepare_input">
+<span class="sig-name descname"><span class="pre">prepare_input</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">rgb_image</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/data_juicer/ops/mapper/video_normal_map_mapper.html#VideoNormalMapMapper.prepare_input"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#data_juicer.ops.mapper.VideoNormalMapMapper.prepare_input" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="data_juicer.ops.mapper.VideoNormalMapMapper.process_single">
+<span class="sig-name descname"><span class="pre">process_single</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">sample</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">rank</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/data_juicer/ops/mapper/video_normal_map_mapper.html#VideoNormalMapMapper.process_single"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#data_juicer.ops.mapper.VideoNormalMapMapper.process_single" title="Link to this definition">¶</a></dt>
+<dd><p>For sample level, sample –&gt; sample</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>sample</strong> – sample to process</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>processed sample</p>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
 <dt class="sig sig-object py" id="data_juicer.ops.mapper.VideoHuman3DPoseMapper">
 <span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">data_juicer.ops.mapper.</span></span><span class="sig-name descname"><span class="pre">VideoHuman3DPoseMapper</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/data_juicer/ops/mapper/video_human_3d_pose_mapper.html#VideoHuman3DPoseMapper"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#data_juicer.ops.mapper.VideoHuman3DPoseMapper" title="Link to this definition">¶</a></dt>
 <dd><p>Bases: <a class="reference internal" href="data_juicer.ops.base_op.html#data_juicer.ops.base_op.Mapper" title="data_juicer.ops.base_op.Mapper"><code class="xref py py-class docutils literal notranslate"><span class="pre">Mapper</span></code></a></p>
@@ -8230,6 +8403,26 @@ to generate caption</p>
             <p class="toc-title">On this page</p>
             <ul>
 <li><a class="reference internal" href="#">data_juicer.ops.mapper</a><ul>
+<li><a class="reference internal" href="#data_juicer.ops.mapper.VideoUniversalSegmentationMapper"><code class="docutils literal notranslate"><span class="pre">VideoUniversalSegmentationMapper</span></code></a><ul>
+<li><a class="reference internal" href="#data_juicer.ops.mapper.VideoUniversalSegmentationMapper.__init__"><code class="docutils literal notranslate"><span class="pre">VideoUniversalSegmentationMapper.__init__()</span></code></a></li>
+<li><a class="reference internal" href="#data_juicer.ops.mapper.VideoUniversalSegmentationMapper.visualization_semantic"><code class="docutils literal notranslate"><span class="pre">VideoUniversalSegmentationMapper.visualization_semantic()</span></code></a></li>
+<li><a class="reference internal" href="#data_juicer.ops.mapper.VideoUniversalSegmentationMapper.visualization_instance_or_panoptic"><code class="docutils literal notranslate"><span class="pre">VideoUniversalSegmentationMapper.visualization_instance_or_panoptic()</span></code></a></li>
+<li><a class="reference internal" href="#data_juicer.ops.mapper.VideoUniversalSegmentationMapper.process_single"><code class="docutils literal notranslate"><span class="pre">VideoUniversalSegmentationMapper.process_single()</span></code></a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#data_juicer.ops.mapper.VideoOpticalFlowMapper"><code class="docutils literal notranslate"><span class="pre">VideoOpticalFlowMapper</span></code></a><ul>
+<li><a class="reference internal" href="#data_juicer.ops.mapper.VideoOpticalFlowMapper.__init__"><code class="docutils literal notranslate"><span class="pre">VideoOpticalFlowMapper.__init__()</span></code></a></li>
+<li><a class="reference internal" href="#data_juicer.ops.mapper.VideoOpticalFlowMapper.raft_preprocess"><code class="docutils literal notranslate"><span class="pre">VideoOpticalFlowMapper.raft_preprocess()</span></code></a></li>
+<li><a class="reference internal" href="#data_juicer.ops.mapper.VideoOpticalFlowMapper.process_single"><code class="docutils literal notranslate"><span class="pre">VideoOpticalFlowMapper.process_single()</span></code></a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#data_juicer.ops.mapper.VideoNormalMapMapper"><code class="docutils literal notranslate"><span class="pre">VideoNormalMapMapper</span></code></a><ul>
+<li><a class="reference internal" href="#data_juicer.ops.mapper.VideoNormalMapMapper.__init__"><code class="docutils literal notranslate"><span class="pre">VideoNormalMapMapper.__init__()</span></code></a></li>
+<li><a class="reference internal" href="#data_juicer.ops.mapper.VideoNormalMapMapper.get_env_spec"><code class="docutils literal notranslate"><span class="pre">VideoNormalMapMapper.get_env_spec()</span></code></a></li>
+<li><a class="reference internal" href="#data_juicer.ops.mapper.VideoNormalMapMapper.prepare_input"><code class="docutils literal notranslate"><span class="pre">VideoNormalMapMapper.prepare_input()</span></code></a></li>
+<li><a class="reference internal" href="#data_juicer.ops.mapper.VideoNormalMapMapper.process_single"><code class="docutils literal notranslate"><span class="pre">VideoNormalMapMapper.process_single()</span></code></a></li>
+</ul>
+</li>
 <li><a class="reference internal" href="#data_juicer.ops.mapper.VideoHuman3DPoseMapper"><code class="docutils literal notranslate"><span class="pre">VideoHuman3DPoseMapper</span></code></a><ul>
 <li><a class="reference internal" href="#data_juicer.ops.mapper.VideoHuman3DPoseMapper.__init__"><code class="docutils literal notranslate"><span class="pre">VideoHuman3DPoseMapper.__init__()</span></code></a></li>
 <li><a class="reference internal" href="#data_juicer.ops.mapper.VideoHuman3DPoseMapper.pad_image"><code class="docutils literal notranslate"><span class="pre">VideoHuman3DPoseMapper.pad_image()</span></code></a></li>

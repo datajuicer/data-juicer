@@ -1,0 +1,7 @@
+data\_juicer.ops.mapper.video\_universal\_segmentation\_mapper module
+=====================================================================
+
+.. automodule:: data_juicer.ops.mapper.video_universal_segmentation_mapper
+   :members:
+   :show-inheritance:
+   :undoc-members:

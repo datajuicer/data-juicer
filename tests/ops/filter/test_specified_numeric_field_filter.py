@@ -250,6 +250,25 @@ class SpecifiedNumericFieldFilterTest(DataJuicerTestCaseBase):
                                          max_value=5)
         self._run_specified_numeric_field_filter(dataset, tgt_list, op)
 
+    def test_empty_field_key_keeps_all(self):
+
+        ds_list = [{
+            'text': 'Today is Sun',
+            'meta': {
+                'star': 50
+            }
+        }, {
+            'text': 'a v s e c s f e f g a a a  ',
+            'meta': {
+                'star': 200
+            }
+        }]
+        dataset = Dataset.from_list(ds_list)
+        op = SpecifiedNumericFieldFilter()
+        self._run_specified_numeric_field_filter(dataset, ds_list, op)
+        res_list = op.run(dataset).remove_columns(Fields.stats).to_list()
+        self.assertEqual(res_list, ds_list)
+
 
 if __name__ == '__main__':
     unittest.main()

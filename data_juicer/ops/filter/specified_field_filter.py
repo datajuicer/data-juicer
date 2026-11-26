@@ -38,6 +38,10 @@ class SpecifiedFieldFilter(Filter):
         self.target_value = target_value
 
     def compute_stats_single(self, sample):
+        # no field to filter on, so there is nothing to compute
+        if not self.field_key:
+            return sample
+
         # get the value from the original field
         field_value = sample
         for key in self.field_key.split("."):

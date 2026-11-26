@@ -66,24 +66,23 @@ def get_ray_nodes_info(cfg=None):
         return _RAY_NODES_INFO
 
     @ray.remote
-    def collect_node_info():
+    def collect_node_info(probe_gpus):
         mem_info = psutil.virtual_memory()
         free_mem = int(mem_info.available / (1024**2))  # MB
         cpu_count = psutil.cpu_count()
 
-        try:
-            gpus_memory, free_gpus_memory = [], []
-            nvidia_smi_output = subprocess.check_output(
-                ["nvidia-smi", "--query-gpu=memory.free,memory.total", "--format=csv,noheader,nounits"]
-            ).decode("utf-8")
-
-            for line in nvidia_smi_output.strip().split("\n"):
-                free_mem_str, total_mem_str = line.split(", ")
-                free_gpus_memory.append(int(free_mem_str))
-                gpus_memory.append(int(total_mem_str))
-        except Exception:
-            # no gpu
-            gpus_memory, free_gpus_memory = [], []
+        gpus_memory, free_gpus_memory = [], []
+        if probe_gpus:
+            try:
+                output = subprocess.check_output(
+                    ["nvidia-smi", "--query-gpu=memory.free,memory.total", "--format=csv,noheader,nounits"], text=True
+                )
+                for line in output.strip().splitlines():
+                    free_mem_str, total_mem_str = line.split(", ")
+                    free_gpus_memory.append(int(free_mem_str))
+                    gpus_memory.append(int(total_mem_str))
+            except (OSError, subprocess.SubprocessError, ValueError):
+                gpus_memory, free_gpus_memory = [], []
 
         return {
             "free_memory": free_mem,  # MB
@@ -98,25 +97,23 @@ def get_ray_nodes_info(cfg=None):
     nodes = ray.nodes()
     logger.info(f"Ray nodes:\n{nodes}")
 
-    alive_nodes = [node for node in nodes if node["Alive"]]
-    # skip head node
-    worker_nodes = [node for node in alive_nodes if "head" not in node["NodeManagerHostname"]]
+    from ray.util.scheduling_strategies import NodeAffinitySchedulingStrategy
 
+    node_ids = []
     futures = []
-    for node in worker_nodes:
+    for node in nodes:
+        if not node["Alive"]:
+            continue
+        resources = node["Resources"]
+        has_gpu = resources.get("GPU", 0) > 0
+        if not has_gpu and resources.get("CPU", 0) <= 0:
+            continue
         node_id = node["NodeID"]
-        from ray.util import scheduling_strategies
+        strategy = NodeAffinitySchedulingStrategy(node_id=node_id, soft=False)
+        node_ids.append(node_id)
+        futures.append(collect_node_info.options(num_cpus=0, scheduling_strategy=strategy).remote(has_gpu))
 
-        strategy = scheduling_strategies.NodeAffinitySchedulingStrategy(node_id=node_id, soft=True)
-        future = collect_node_info.options(scheduling_strategy=strategy).remote()
-        futures.append(future)
-
-    results = ray.get(futures)
-
-    _RAY_NODES_INFO = {}
-    for i, (node, info) in enumerate(zip(alive_nodes, results)):
-        node_id = node["NodeID"]
-        _RAY_NODES_INFO[node_id] = info
+    _RAY_NODES_INFO = dict(zip(node_ids, ray.get(futures)))
 
     logger.info(f"Ray cluster info:\n{_RAY_NODES_INFO}")
 

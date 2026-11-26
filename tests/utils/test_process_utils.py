@@ -412,6 +412,39 @@ class CalculateRayNPTest(DataJuicerTestCaseBase):
                          "but the gpu is unavailable. Please check whether your environment is installed correctly"
                          " and whether there is a gpu in the resource pool.")
 
+    def test_auto_gpu_reservation_uses_smallest_gpu_and_caps_concurrency(self):
+        self.mock_gpu.return_value = 2
+        self.mock_gpu_mem.return_value = [8 * 1024, 24 * 1024]
+        op = self.mock_op(use_cuda=True)
+        op.memory = 5
+
+        calculate_ray_np([op])
+
+        self.assertEqual(op.num_gpus, 0.63)
+        self.assertEqual(op.num_proc, 2)
+
+    def test_explicit_gpu_reservation_works_without_memory_telemetry(self):
+        self.mock_gpu.return_value = 2
+        self.mock_gpu_mem.return_value = []
+        op = self.mock_op(use_cuda=True)
+        op.num_gpus = 1
+        op.num_proc = 2
+        op.memory = 5
+
+        calculate_ray_np([op])
+
+        self.assertEqual(op.num_gpus, 1)
+        self.assertEqual(op.num_proc, 2)
+
+    def test_auto_gpu_reservation_rejects_request_too_large_for_one_card(self):
+        self.mock_gpu.return_value = 2
+        self.mock_gpu_mem.return_value = [8 * 1024, 24 * 1024]
+        op = self.mock_op(use_cuda=True)
+        op.memory = 10
+
+        with self.assertRaisesRegex(ValueError, "the smallest Ray GPU has 8 GB free"):
+            calculate_ray_np([op])
+
     def test_multi_ops_with_cpu_gpu(self):
         """Test operator with no resource requirements"""
 

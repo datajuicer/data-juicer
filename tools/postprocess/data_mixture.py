@@ -1,6 +1,7 @@
 import argparse
+import shlex
 
-from data_juicer.core.data.dataset_builder import DatasetBuilder
+from data_juicer.core.data.dataset_builder import DatasetBuilder, rewrite_cli_datapath
 from data_juicer.core.exporter import Exporter
 
 
@@ -9,8 +10,8 @@ def parse_args():
     parser = argparse.ArgumentParser(description="Mix multiple datasets Arguments")
     parser.add_argument(
         "--data_path",
-        nargs="*",
-        default=None,
+        nargs="+",
+        required=True,
         help="Path to datasets. Accepted format:"
         "1) a single data path, 2) multiple datasets in the"
         "form: dataset1-weight dataset1-path dataset2-weight "
@@ -41,6 +42,8 @@ def parse_args():
     parser.add_argument("--num_proc", type=int, default=4, help="Number of processes to process dataset.")
 
     args = parser.parse_args()
+    if args.max_samples is not None and args.max_samples <= 0:
+        parser.error("--max_samples must be a positive integer")
 
     return args
 
@@ -59,8 +62,8 @@ def run_mixture():
 
     """
     args = parse_args()
-    data_path = " ".join(args.data_path)
-    args.dataset_path = data_path
+    data_path = shlex.join(args.data_path)
+    args.dataset = rewrite_cli_datapath(data_path, max_sample_num=args.max_samples)
     dataset_builder = DatasetBuilder(args)
     dataset = dataset_builder.load_dataset(num_proc=args.num_proc)
     exporter = Exporter(

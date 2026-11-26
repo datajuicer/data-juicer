@@ -46,6 +46,13 @@ python tools/postprocess/data_mixture.py  --help
 - `export_path`: a dataset file name for exporting mixed dataset, support `json` / `jsonl` / `parquet`.
 - `export_shard_size`:  dataset file size in Byte. If not set, mixed dataset will be exported into only one file.
 - `num_proc`:  process num to load and export datasets.
+- `max_samples`: positive total sample count. When provided, weights allocate this
+  count across datasets; a source is sampled with repetition if its allocation
+  exceeds its size. Without this option, all rows are concatenated and weights
+  do not change the source sizes.
+
+For example, `--data_path 1 a.jsonl 3 b.jsonl --max_samples 1000` exports
+250 samples from `a.jsonl` and 750 from `b.jsonl`. Quote paths containing spaces.
 
 - e.g., `python tools/postprocess/data_mixture.py  --data_path  <w1> ds.jsonl <w2> ds_dir <w3> ds_file.json`
 

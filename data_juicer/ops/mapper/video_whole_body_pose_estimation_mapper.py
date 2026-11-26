@@ -10,7 +10,7 @@ from data_juicer.utils.lazy_loader import LazyLoader
 from data_juicer.utils.mm_utils import SpecialTokens
 from data_juicer.utils.model_utils import get_model, prepare_model
 
-from ..base_op import OPERATORS, Mapper
+from ..base_op import OPERATORS, TAGGING_OPS, Mapper
 from ..op_fusion import LOADED_VIDEOS
 
 OP_NAME = "video_whole_body_pose_estimation_mapper"
@@ -18,6 +18,7 @@ OP_NAME = "video_whole_body_pose_estimation_mapper"
 cv2 = LazyLoader("cv2", "opencv-contrib-python")
 
 
+@TAGGING_OPS.register_module(OP_NAME)
 @OPERATORS.register_module(OP_NAME)
 @LOADED_VIDEOS.register_module(OP_NAME)
 class VideoWholeBodyPoseEstimationMapper(Mapper):

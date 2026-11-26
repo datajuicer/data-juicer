@@ -1,5 +1,7 @@
 import os
+import tempfile
 import unittest
+from unittest import mock
 import numpy as np
 
 from data_juicer.core.data import NestedDataset as Dataset
@@ -92,6 +94,34 @@ class VideoWholeBodyPoseEstimationMapperTest(DataJuicerTestCaseBase):
             self.assertEqual(list(np.array(sample[Fields.meta][MetaKeys.pose_estimation_tags]["hands_keypoints"][2]).shape), target["hands_keypoints_shape"])
             self.assertEqual(len(sample[Fields.meta][MetaKeys.pose_estimation_tags]["bbox_results_list"]), target["bbox_results_list_length"])
             self.assertEqual(list(np.array(sample[Fields.meta][MetaKeys.pose_estimation_tags]["bbox_results_list"][2]).shape), target["bbox_shape"])
+
+    def test_run_without_meta_field(self):
+        # the input has no meta field: it should be added by the op itself
+        # instead of raising a KeyError in process_single
+        fake_pose = (np.zeros((1, 18, 2)), np.zeros((1, 6, 2)),
+                     np.zeros((1, 68, 2)), np.zeros((2, 21, 2)),
+                     np.zeros((1, 4)), None)
+
+        with tempfile.TemporaryDirectory() as frame_dir:
+            op = VideoWholeBodyPoseEstimationMapper(
+                frame_num=1,
+                tag_field_name=MetaKeys.pose_estimation_tags,
+                frame_dir=frame_dir,
+            )
+
+            dataset = Dataset.from_list([{'videos': [self.vid4_path]}])
+            self.assertNotIn(Fields.meta, dataset.features)
+            with mock.patch(
+                    'data_juicer.ops.mapper.'
+                    'video_whole_body_pose_estimation_mapper.get_model',
+                    return_value=lambda img: fake_pose):
+                res_list = op.run(dataset).to_list()
+
+        self.assertEqual(len(res_list), 1)
+        tags = res_list[0][Fields.meta][MetaKeys.pose_estimation_tags]
+        self.assertEqual(len(tags['body_keypoints']), 1)
+        self.assertEqual(list(np.array(tags['body_keypoints'][0]).shape),
+                         [1, 18, 2])
 
 
 if __name__ == '__main__':

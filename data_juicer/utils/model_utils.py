@@ -2272,6 +2272,7 @@ def prepare_face_detect_S3FD_model(model_path=None, **model_params):
     return model
 
 
+# The default model card declares CC-BY-NC-SA-4.0; verify commercial use.
 def prepare_wav2vec2_age_gender_model(
     pretrained_model_name_or_path="audeering/wav2vec2-large-robust-24-ft-age-gender", **model_params
 ):

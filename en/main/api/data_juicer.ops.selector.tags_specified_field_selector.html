@@ -461,7 +461,9 @@
 target tags. The field can be multi-level, with levels separated by dots (e.g.,
 ‘level1.level2’). The operator checks if the specified field exists in the dataset and
 if the field value is a string, number, or None. If the field value matches any of the
-target tags, the sample is kept. The selection is case-sensitive.</p>
+target tags, the sample is kept. A list-valued field matches when any element
+matches a target tag; empty lists do not match. List elements must also be
+strings, numbers, or None. The selection is case-sensitive.</p>
 <ul class="simple">
 <li><p>The <cite>field_key</cite> parameter specifies the field to check.</p></li>
 <li><p>The <cite>target_tags</cite> parameter is a list of tags to match against the field value.</p></li>

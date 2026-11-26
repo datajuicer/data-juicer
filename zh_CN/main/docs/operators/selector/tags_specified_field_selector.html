@@ -461,14 +461,14 @@
   <section id="tags-specified-field-selector">
 <h1>tags_specified_field_selector<a class="headerlink" href="#tags-specified-field-selector" title="链接到此标题。">¶</a></h1>
 <p>Selector to filter samples based on the tags of a specified field.</p>
-<p>This operator selects samples where the value of the specified field matches one of the target tags. The field can be multi-level, with levels separated by dots (e.g., 'level1.level2'). The operator checks if the specified field exists in the dataset and if the field value is a string, number, or None. If the field value matches any of the target tags, the sample is kept. The selection is case-sensitive.</p>
+<p>This operator selects samples where the value of the specified field matches one of the target tags. The field can be multi-level, with levels separated by dots (e.g., 'level1.level2'). The operator checks if the specified field exists in the dataset and if the field value is a string, number, None, or a list of these types. If the scalar value or any list element matches a target tag, the sample is kept. The selection is case-sensitive.</p>
 <ul class="simple">
 <li><p>The <code class="docutils literal notranslate"><span class="pre">field_key</span></code> parameter specifies the field to check.</p></li>
 <li><p>The <code class="docutils literal notranslate"><span class="pre">target_tags</span></code> parameter is a list of tags to match against the field value.</p></li>
 <li><p>If the dataset has fewer than two samples or if <code class="docutils literal notranslate"><span class="pre">field_key</span></code> is empty, the dataset is returned unchanged.</p></li>
 </ul>
 <p>根据指定字段的标签筛选样本的选择器。</p>
-<p>该算子选择指定字段的值与目标标签之一匹配的样本。字段可以是多级的，级别之间用点分隔（例如，'level1.level2'）。该算子检查指定的字段是否存在于数据集中，以及字段值是否为字符串、数字或 None。如果字段值与任何目标标签匹配，则保留该样本。选择区分大小写。</p>
+<p>该算子选择指定字段的值与目标标签之一匹配的样本。字段可以是多级的，级别之间用点分隔（例如，'level1.level2'）。该算子检查指定的字段是否存在于数据集中，以及字段值是否为字符串、数字、None 或由这些类型组成的列表。如果标量值或列表中的任一元素与目标标签匹配，则保留该样本。选择区分大小写。</p>
 <ul class="simple">
 <li><p><code class="docutils literal notranslate"><span class="pre">field_key</span></code> 参数指定要检查的字段。</p></li>
 <li><p><code class="docutils literal notranslate"><span class="pre">target_tags</span></code> 参数是要与字段值匹配的标签列表。</p></li>
@@ -510,6 +510,19 @@
 </tbody>
 </table>
 </section>
+<section id="multi-label-data">
+<h2>Multi-label data 多标签数据<a class="headerlink" href="#multi-label-data" title="链接到此标题。">¶</a></h2>
+<p>A list-valued field is selected when <strong>any</strong> element matches a target tag. Empty lists do not match; duplicate matching tags do not duplicate rows. Matching remains case-sensitive and preserves input row order. List elements must be strings, numbers, or <code class="docutils literal notranslate"><span class="pre">None</span></code>; nested lists and objects are rejected. A scalar <code class="docutils literal notranslate"><span class="pre">None</span></code> or a <code class="docutils literal notranslate"><span class="pre">None</span></code> list element matches only when <code class="docutils literal notranslate"><span class="pre">target_tags</span></code> contains <code class="docutils literal notranslate"><span class="pre">None</span></code>.</p>
+<p>列表字段中任一标签命中即保留该行，空列表不命中，重复标签不会产生重复行。匹配区分大小写并保持输入顺序；不支持嵌套列表或对象。原有单标签及少于两行时直接返回的行为保持不变。</p>
+<p>For example, keep documents tagged with math or code without exploding the dataset:</p>
+<div class="highlight-yaml notranslate"><div class="highlight"><pre><span></span><span class="nt">process</span><span class="p">:</span>
+<span class="w">  </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">tags_specified_field_selector</span><span class="p">:</span>
+<span class="w">      </span><span class="nt">field_key</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">meta.topics</span>
+<span class="w">      </span><span class="nt">target_tags</span><span class="p">:</span><span class="w"> </span><span class="p p-Indicator">[</span><span class="nv">math</span><span class="p p-Indicator">,</span><span class="w"> </span><span class="nv">code</span><span class="p p-Indicator">]</span>
+</pre></div>
+</div>
+<p><code class="docutils literal notranslate"><span class="pre">{&quot;meta&quot;:</span> <span class="pre">{&quot;topics&quot;:</span> <span class="pre">[&quot;math&quot;,</span> <span class="pre">&quot;reasoning&quot;]}}</span></code> matches, while <code class="docutils literal notranslate"><span class="pre">{&quot;meta&quot;:</span> <span class="pre">{&quot;topics&quot;:</span> <span class="pre">[&quot;history&quot;]}}</span></code> does not.</p>
+</section>
 <section id="effect-demonstration">
 <h2>📊 Effect demonstration 效果演示<a class="headerlink" href="#effect-demonstration" title="链接到此标题。">¶</a></h2>
 <section id="test-tag-select">
@@ -550,6 +563,7 @@ TagsSpecifiedFieldSelector算子通过保留'meta.sentiment'字段值为'happy'�
             <ul>
 <li><a class="reference internal" href="#">tags_specified_field_selector</a><ul>
 <li><a class="reference internal" href="#parameter-configuration">🔧 Parameter Configuration 参数配置</a></li>
+<li><a class="reference internal" href="#multi-label-data">Multi-label data 多标签数据</a></li>
 <li><a class="reference internal" href="#effect-demonstration">📊 Effect demonstration 效果演示</a><ul>
 <li><a class="reference internal" href="#test-tag-select">test_tag_select</a><ul>
 <li><a class="reference internal" href="#input-data">📥 input data 输入数据</a></li>

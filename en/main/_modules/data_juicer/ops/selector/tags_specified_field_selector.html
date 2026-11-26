@@ -468,7 +468,9 @@
 <span class="sd">    target tags. The field can be multi-level, with levels separated by dots (e.g.,</span>
 <span class="sd">    'level1.level2'). The operator checks if the specified field exists in the dataset and</span>
 <span class="sd">    if the field value is a string, number, or None. If the field value matches any of the</span>
-<span class="sd">    target tags, the sample is kept. The selection is case-sensitive.</span>
+<span class="sd">    target tags, the sample is kept. A list-valued field matches when any element</span>
+<span class="sd">    matches a target tag; empty lists do not match. List elements must also be</span>
+<span class="sd">    strings, numbers, or None. The selection is case-sensitive.</span>
 
 <span class="sd">    - The `field_key` parameter specifies the field to check.</span>
 <span class="sd">    - The `target_tags` parameter is a list of tags to match against the field value.</span>
@@ -509,10 +511,17 @@
             <span class="k">for</span> <span class="n">key</span> <span class="ow">in</span> <span class="n">field_keys</span><span class="p">[</span><span class="mi">1</span><span class="p">:]:</span>
                 <span class="k">assert</span> <span class="n">key</span> <span class="ow">in</span> <span class="n">field_value</span><span class="o">.</span><span class="n">keys</span><span class="p">(),</span> <span class="s2">"'</span><span class="si">{}</span><span class="s2">' not in </span><span class="si">{}</span><span class="s2">"</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">key</span><span class="p">,</span> <span class="n">field_value</span><span class="o">.</span><span class="n">keys</span><span class="p">())</span>
                 <span class="n">field_value</span> <span class="o">=</span> <span class="n">field_value</span><span class="p">[</span><span class="n">key</span><span class="p">]</span>
-            <span class="k">assert</span> <span class="p">(</span>
-                <span class="n">field_value</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">or</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">field_value</span><span class="p">,</span> <span class="nb">str</span><span class="p">)</span> <span class="ow">or</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">field_value</span><span class="p">,</span> <span class="n">numbers</span><span class="o">.</span><span class="n">Number</span><span class="p">)</span>
-            <span class="p">),</span> <span class="s2">"The </span><span class="si">{}</span><span class="s2"> item is not String, Numbers or NoneType"</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">i</span><span class="p">)</span>
-            <span class="k">if</span> <span class="n">field_value</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">target_tags</span><span class="p">:</span>
+            <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">field_value</span><span class="p">,</span> <span class="nb">list</span><span class="p">):</span>
+                <span class="k">assert</span> <span class="nb">all</span><span class="p">(</span>
+                    <span class="n">value</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">or</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">value</span><span class="p">,</span> <span class="p">(</span><span class="nb">str</span><span class="p">,</span> <span class="n">numbers</span><span class="o">.</span><span class="n">Number</span><span class="p">))</span> <span class="k">for</span> <span class="n">value</span> <span class="ow">in</span> <span class="n">field_value</span>
+                <span class="p">),</span> <span class="s2">"The </span><span class="si">{}</span><span class="s2"> item must contain only Strings, Numbers or None"</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">i</span><span class="p">)</span>
+                <span class="n">matches</span> <span class="o">=</span> <span class="nb">any</span><span class="p">(</span><span class="n">value</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">target_tags</span> <span class="k">for</span> <span class="n">value</span> <span class="ow">in</span> <span class="n">field_value</span><span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="k">assert</span> <span class="p">(</span>
+                    <span class="n">field_value</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">or</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">field_value</span><span class="p">,</span> <span class="nb">str</span><span class="p">)</span> <span class="ow">or</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">field_value</span><span class="p">,</span> <span class="n">numbers</span><span class="o">.</span><span class="n">Number</span><span class="p">)</span>
+                <span class="p">),</span> <span class="s2">"The </span><span class="si">{}</span><span class="s2"> item is not String, Numbers or NoneType"</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">i</span><span class="p">)</span>
+                <span class="n">matches</span> <span class="o">=</span> <span class="n">field_value</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">target_tags</span>
+            <span class="k">if</span> <span class="n">matches</span><span class="p">:</span>
                 <span class="n">selected_index</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">i</span><span class="p">)</span>
 
         <span class="k">return</span> <span class="n">dataset</span><span class="o">.</span><span class="n">select</span><span class="p">(</span><span class="n">selected_index</span><span class="p">)</span></div>

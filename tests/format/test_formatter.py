@@ -765,6 +765,32 @@ class AddSuffixesTest(DataJuicerTestCaseBase):
         self.assertIn(".csv", suffixes)
         self.assertEqual(len(result), 3)
 
+    def test_appends_suffix_without_copying_payload(self):
+        source = HFDataset.from_dict({
+            "text": ["hello", None, "文档"],
+            "metadata": [{"tags": ["a"]}, None, {"tags": []}],
+        })
+        splits = DatasetDict({"parquet": source})
+        result = add_suffixes(splits)
+        self.assertEqual(result.to_list(), [{**row, "__dj__suffix__": ".parquet"} for row in source.to_list()])
+        original = source.data.column("text").chunk(0).buffers()
+        tagged = splits["parquet"].data.column("text").chunk(0).buffers()
+        self.assertEqual([b.address for b in original], [b.address for b in tagged])
+
+    def test_keeps_existing_suffixes_and_indexed_row_order(self):
+        source = HFDataset.from_dict({"text": ["first", "second", "third"]})
+        existing = HFDataset.from_dict({"text": ["existing"], "__dj__suffix__": [".custom"]})
+        splits = DatasetDict({"parquet": source.select([2, 0, 2]), "json": existing})
+        result = add_suffixes(splits, num_proc=None)
+        self.assertEqual(list(result["text"]), ["third", "first", "third", "existing"])
+        self.assertEqual(list(result["__dj__suffix__"]), [".parquet", ".parquet", ".parquet", ".custom"])
+
+    def test_empty_split_remains_empty_without_suffix(self):
+        source = HFDataset.from_dict({"text": []})
+        result = add_suffixes(DatasetDict({"parquet": source}))
+        self.assertEqual(len(result), 0)
+        self.assertEqual(result.features, source.features)
+
 
 class UnifyFormatAudioVideoPathTest(DataJuicerTestCaseBase):
     """Cover audio_key / video_key relative-to-absolute path conversion

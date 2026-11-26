@@ -489,14 +489,20 @@
         <span class="bp">self</span><span class="o">.</span><span class="n">pattern</span> <span class="o">+=</span> <span class="sa">r</span><span class="s2">"</span><span class="se">\\</span><span class="s2">begin\{REFERENCES\}|"</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">pattern</span> <span class="o">+=</span> <span class="sa">r</span><span class="s2">"</span><span class="se">\\</span><span class="s2">begin\{thebibliography\}|"</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">pattern</span> <span class="o">+=</span> <span class="sa">r</span><span class="s2">"</span><span class="se">\\</span><span class="s2">bibliography\{.*\}"</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">pattern</span> <span class="o">+=</span> <span class="sa">r</span><span class="s2">").*$"</span></div>
+        <span class="bp">self</span><span class="o">.</span><span class="n">pattern</span> <span class="o">+=</span> <span class="sa">r</span><span class="s2">").*$"</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">bibliography_pattern</span> <span class="o">=</span> <span class="n">re</span><span class="o">.</span><span class="n">compile</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">pattern</span><span class="p">,</span> <span class="n">re</span><span class="o">.</span><span class="n">DOTALL</span><span class="p">)</span></div>
 
 
 <div class="viewcode-block" id="RemoveBibliographyMapper.process_batched">
 <a class="viewcode-back" href="../../../../api/data_juicer.ops.mapper.html#data_juicer.ops.mapper.RemoveBibliographyMapper.process_batched">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">process_batched</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">samples</span><span class="p">):</span>
+        <span class="c1"># `.*$` under DOTALL swallows everything from the first match to the end of</span>
+        <span class="c1"># the text, so substituting it with an empty string is the same as keeping</span>
+        <span class="c1"># the prefix before that match. Slicing avoids building a match object for</span>
+        <span class="c1"># the whole tail.</span>
         <span class="n">samples</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">text_key</span><span class="p">]</span> <span class="o">=</span> <span class="p">[</span>
-            <span class="n">re</span><span class="o">.</span><span class="n">sub</span><span class="p">(</span><span class="n">pattern</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">pattern</span><span class="p">,</span> <span class="n">repl</span><span class="o">=</span><span class="sa">r</span><span class="s2">""</span><span class="p">,</span> <span class="n">string</span><span class="o">=</span><span class="n">text</span><span class="p">,</span> <span class="n">flags</span><span class="o">=</span><span class="n">re</span><span class="o">.</span><span class="n">DOTALL</span><span class="p">)</span> <span class="k">for</span> <span class="n">text</span> <span class="ow">in</span> <span class="n">samples</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">text_key</span><span class="p">]</span>
+            <span class="n">text</span> <span class="k">if</span> <span class="p">(</span><span class="n">match</span> <span class="o">:=</span> <span class="bp">self</span><span class="o">.</span><span class="n">bibliography_pattern</span><span class="o">.</span><span class="n">search</span><span class="p">(</span><span class="n">text</span><span class="p">))</span> <span class="ow">is</span> <span class="kc">None</span> <span class="k">else</span> <span class="n">text</span><span class="p">[:</span> <span class="n">match</span><span class="o">.</span><span class="n">start</span><span class="p">()]</span>
+            <span class="k">for</span> <span class="n">text</span> <span class="ow">in</span> <span class="n">samples</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">text_key</span><span class="p">]</span>
         <span class="p">]</span>
 
         <span class="k">return</span> <span class="n">samples</span></div>

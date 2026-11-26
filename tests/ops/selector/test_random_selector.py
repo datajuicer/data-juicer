@@ -1,12 +1,94 @@
+import tempfile
 import unittest
+from pathlib import Path
 
+import numpy as np
+import yaml
 from datasets import Dataset
 
+from data_juicer.config import init_configs
+from data_juicer.ops.load import load_ops
 from data_juicer.ops.selector.random_selector import RandomSelector
 from data_juicer.utils.unittest_utils import DataJuicerTestCaseBase
 
 
 class RandomSelectorTest(DataJuicerTestCaseBase):
+
+    def _seed_dataset(self):
+        return Dataset.from_dict({"id": list(range(100)), "text": [f"sample {i}" for i in range(100)]})
+
+    def test_default_preserves_previous_seed_and_order(self):
+        dataset = self._seed_dataset()
+        expected = dataset.shuffle(seed=42).select(range(17)).to_list()
+        self.assertEqual(RandomSelector(select_num=17).process(dataset).to_list(), expected)
+
+    def test_custom_seed_is_reproducible(self):
+        dataset = self._seed_dataset()
+        for seed in (0, 7, 42):
+            for view_name, view in (("original", dataset), ("reversed", dataset.select(range(99, -1, -1)))):
+                with self.subTest(seed=seed, view=view_name):
+                    expected = view.shuffle(seed=seed).select(range(17)).to_list()
+                    op = RandomSelector(select_num=17, seed=seed)
+                    self.assertEqual(op.process(view).to_list(), expected)
+                    self.assertEqual(op.process(view).to_list(), expected)
+
+    def test_recipe_seed_changes_selected_rows(self):
+        dataset = self._seed_dataset()
+        recipe = yaml.safe_load("process:\n  - random_selector:\n      select_num: 17\n      seed: 7\n")
+        selected = load_ops(recipe["process"])[0].process(dataset).to_list()
+        self.assertEqual(selected, dataset.shuffle(seed=7).select(range(17)).to_list())
+        self.assertNotEqual(selected, RandomSelector(select_num=17).process(dataset).to_list())
+
+    def test_cli_overrides_recipe_seed(self):
+        dataset = self._seed_dataset()
+        with tempfile.TemporaryDirectory() as tmpdir:
+            root = Path(tmpdir)
+            source = root / "input.jsonl"
+            source.write_text('{"text": "sample"}\n', encoding="utf-8")
+            config = root / "recipe.yaml"
+            config.write_text(
+                yaml.safe_dump(
+                    {
+                        "dataset_path": source.as_posix(),
+                        "export_path": (root / "output.jsonl").as_posix(),
+                        "process": [{"random_selector": {"select_num": 17, "seed": 42}}],
+                    }
+                ),
+                encoding="utf-8",
+            )
+            cfg = init_configs(args=["--config", str(config), "--random_selector.seed", "7"], load_configs_only=True)
+            selected = load_ops(cfg.process)[0].process(dataset).to_list()
+        self.assertEqual(selected, dataset.shuffle(seed=7).select(range(17)).to_list())
+
+    def test_ratio_and_count_use_custom_seed(self):
+        dataset = self._seed_dataset()
+        for config, count in (({"select_ratio": 0.25}, 25), ({"select_ratio": 0.25, "select_num": 7}, 7)):
+            with self.subTest(**config):
+                expected = dataset.shuffle(seed=7).select(range(count)).to_list()
+                self.assertEqual(RandomSelector(seed=7, **config).process(dataset).to_list(), expected)
+
+    def test_seeded_oversampling(self):
+        dataset = self._seed_dataset()
+        expected = dataset.shuffle(seed=7).select(list(range(100)) + list(range(25))).to_list()
+        self.assertEqual(RandomSelector(select_num=125, seed=7).process(dataset).to_list(), expected)
+
+    def test_seed_keeps_noop_and_empty_selection_behavior(self):
+        dataset = self._seed_dataset()
+        for config in ({}, {"select_num": 100}, {"select_ratio": 0.0}):
+            with self.subTest(**config):
+                self.assertEqual(
+                    RandomSelector(seed=7, **config).process(dataset).to_list(),
+                    RandomSelector(**config).process(dataset).to_list(),
+                )
+
+    def test_custom_seed_preserves_numpy_global_rng(self):
+        dataset = self._seed_dataset()
+        before = np.random.get_state()
+        RandomSelector(select_num=17, seed=7).process(dataset)
+        after = np.random.get_state()
+        self.assertEqual(before[0], after[0])
+        np.testing.assert_array_equal(before[1], after[1])
+        self.assertEqual(before[2:], after[2:])
 
     def test_zero_selection_preserves_schema(self):
         dataset = Dataset.from_dict({'text': ['first', 'second'], 'score': [1, 2]})

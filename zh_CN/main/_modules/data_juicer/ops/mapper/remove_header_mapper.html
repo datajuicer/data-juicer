@@ -490,15 +490,23 @@
 <span class="sd">        :param kwargs: extra args</span>
 <span class="sd">        """</span>
         <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">pattern</span> <span class="o">=</span> <span class="sa">r</span><span class="s2">"^(.*?)("</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">pattern</span> <span class="o">+=</span> <span class="sa">r</span><span class="s2">"</span><span class="se">\\</span><span class="s2">\bchapter\b\*?(?:\[(.*?)\])?\{(.*?)\}|"</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">pattern</span> <span class="o">+=</span> <span class="sa">r</span><span class="s2">"</span><span class="se">\\</span><span class="s2">\bpart\b\*?(?:\[(.*?)\])?\{(.*?)\}|"</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">pattern</span> <span class="o">+=</span> <span class="sa">r</span><span class="s2">"</span><span class="se">\\</span><span class="s2">\bsection\b\*?(?:\[(.*?)\])?\{(.*?)\}|"</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">pattern</span> <span class="o">+=</span> <span class="sa">r</span><span class="s2">"</span><span class="se">\\</span><span class="s2">\bsubsection\b\*?(?:\[(.*?)\])?\{(.*?)\}|"</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">pattern</span> <span class="o">+=</span> <span class="sa">r</span><span class="s2">"</span><span class="se">\\</span><span class="s2">\bsubsubsection\b\*?(?:\[(.*?)\])?\{(.*?)\}|"</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">pattern</span> <span class="o">+=</span> <span class="sa">r</span><span class="s2">"</span><span class="se">\\</span><span class="s2">\bparagraph\b\*?(?:\[(.*?)\])?\{(.*?)\}|"</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">pattern</span> <span class="o">+=</span> <span class="sa">r</span><span class="s2">"</span><span class="se">\\</span><span class="s2">\bsubparagraph\b\*?(?:\[(.*?)\])?\{(.*?)\}"</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">pattern</span> <span class="o">+=</span> <span class="sa">r</span><span class="s2">")"</span>
+        <span class="n">headers</span> <span class="o">=</span> <span class="p">(</span>
+            <span class="sa">r</span><span class="s2">"</span><span class="se">\\</span><span class="s2">\bchapter\b\*?(?:\[(.*?)\])?\{(.*?)\}|"</span>
+            <span class="sa">r</span><span class="s2">"</span><span class="se">\\</span><span class="s2">\bpart\b\*?(?:\[(.*?)\])?\{(.*?)\}|"</span>
+            <span class="sa">r</span><span class="s2">"</span><span class="se">\\</span><span class="s2">\bsection\b\*?(?:\[(.*?)\])?\{(.*?)\}|"</span>
+            <span class="sa">r</span><span class="s2">"</span><span class="se">\\</span><span class="s2">\bsubsection\b\*?(?:\[(.*?)\])?\{(.*?)\}|"</span>
+            <span class="sa">r</span><span class="s2">"</span><span class="se">\\</span><span class="s2">\bsubsubsection\b\*?(?:\[(.*?)\])?\{(.*?)\}|"</span>
+            <span class="sa">r</span><span class="s2">"</span><span class="se">\\</span><span class="s2">\bparagraph\b\*?(?:\[(.*?)\])?\{(.*?)\}|"</span>
+            <span class="sa">r</span><span class="s2">"</span><span class="se">\\</span><span class="s2">\bsubparagraph\b\*?(?:\[(.*?)\])?\{(.*?)\}"</span>
+        <span class="p">)</span>
+        <span class="c1"># `^(.*?)(...)` anchors the match to the start, so the engine has to</span>
+        <span class="c1"># retry from every offset and cannot use its literal-prefix fast</span>
+        <span class="c1"># search. Searching the headers on their own and slicing the text</span>
+        <span class="c1"># gives the same result with a cheaper scan.</span>
+        <span class="c1"># Keep the plain-string attribute that existed before this change;</span>
+        <span class="c1"># subclass code and callers may read it.</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">pattern</span> <span class="o">=</span> <span class="n">headers</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">header_pattern</span> <span class="o">=</span> <span class="n">re</span><span class="o">.</span><span class="n">compile</span><span class="p">(</span><span class="n">headers</span><span class="p">,</span> <span class="n">re</span><span class="o">.</span><span class="n">DOTALL</span><span class="p">)</span>
 
         <span class="bp">self</span><span class="o">.</span><span class="n">drop_no_head</span> <span class="o">=</span> <span class="n">drop_no_head</span></div>
 
@@ -507,13 +515,19 @@
 <a class="viewcode-back" href="../../../../api/data_juicer.ops.mapper.html#data_juicer.ops.mapper.RemoveHeaderMapper.process_batched">[文档]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">process_batched</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">samples</span><span class="p">):</span>
         <span class="k">for</span> <span class="n">idx</span><span class="p">,</span> <span class="n">text</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">samples</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">text_key</span><span class="p">]):</span>
-            <span class="k">if</span> <span class="ow">not</span> <span class="n">re</span><span class="o">.</span><span class="n">search</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">pattern</span><span class="p">,</span> <span class="n">text</span><span class="p">,</span> <span class="n">flags</span><span class="o">=</span><span class="n">re</span><span class="o">.</span><span class="n">DOTALL</span><span class="p">):</span>
+            <span class="c1"># Every alternative starts with a literal backslash, so text without</span>
+            <span class="c1"># one cannot contain a header. This is a C-level scan and skips the</span>
+            <span class="c1"># regex entirely on plain text.</span>
+            <span class="k">if</span> <span class="s2">"</span><span class="se">\\</span><span class="s2">"</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">text</span><span class="p">:</span>
                 <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">drop_no_head</span><span class="p">:</span>
                     <span class="n">samples</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">text_key</span><span class="p">][</span><span class="n">idx</span><span class="p">]</span> <span class="o">=</span> <span class="s2">""</span>
                 <span class="k">continue</span>
-            <span class="n">text</span> <span class="o">=</span> <span class="n">re</span><span class="o">.</span><span class="n">sub</span><span class="p">(</span><span class="n">pattern</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">pattern</span><span class="p">,</span> <span class="n">repl</span><span class="o">=</span><span class="sa">r</span><span class="s2">"\2"</span><span class="p">,</span> <span class="n">string</span><span class="o">=</span><span class="n">text</span><span class="p">,</span> <span class="n">flags</span><span class="o">=</span><span class="n">re</span><span class="o">.</span><span class="n">DOTALL</span><span class="p">)</span>
-
-            <span class="n">samples</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">text_key</span><span class="p">][</span><span class="n">idx</span><span class="p">]</span> <span class="o">=</span> <span class="n">text</span>
+            <span class="n">match</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">header_pattern</span><span class="o">.</span><span class="n">search</span><span class="p">(</span><span class="n">text</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">match</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">drop_no_head</span><span class="p">:</span>
+                    <span class="n">samples</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">text_key</span><span class="p">][</span><span class="n">idx</span><span class="p">]</span> <span class="o">=</span> <span class="s2">""</span>
+                <span class="k">continue</span>
+            <span class="n">samples</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">text_key</span><span class="p">][</span><span class="n">idx</span><span class="p">]</span> <span class="o">=</span> <span class="n">text</span><span class="p">[</span><span class="n">match</span><span class="o">.</span><span class="n">start</span><span class="p">()</span> <span class="p">:]</span>
 
         <span class="k">return</span> <span class="n">samples</span></div>
 </div>

@@ -465,6 +465,7 @@
 <ul class="simple">
 <li><p><code class="docutils literal notranslate"><span class="pre">select_ratio</span></code>: The ratio of samples to select (0 to 1).</p></li>
 <li><p><code class="docutils literal notranslate"><span class="pre">select_num</span></code>: The exact number of samples to select.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">seed</span></code>: Nonnegative random seed, defaulting to 42 to preserve existing selections. Reproducibility requires the same input dataset and row order.</p></li>
 <li><p>If neither <code class="docutils literal notranslate"><span class="pre">select_ratio</span></code> nor <code class="docutils literal notranslate"><span class="pre">select_num</span></code> is set, the dataset remains unchanged.</p></li>
 </ul>
 <p>从数据集中随机选择一部分样本。</p>
@@ -472,6 +473,7 @@
 <ul class="simple">
 <li><p><code class="docutils literal notranslate"><span class="pre">select_ratio</span></code>：要选择的样本比例（0 到 1）。</p></li>
 <li><p><code class="docutils literal notranslate"><span class="pre">select_num</span></code>：要选择的确切样本数量。</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">seed</span></code>：非负随机种子，默认 42，保持原有抽样结果。复现结果要求输入数据及行顺序相同。</p></li>
 <li><p>如果既未设置 <code class="docutils literal notranslate"><span class="pre">select_ratio</span></code> 也未设置 <code class="docutils literal notranslate"><span class="pre">select_num</span></code>，则数据集保持不变。</p></li>
 </ul>
 <p>Type 算子类型: <strong>selector</strong></p>
@@ -497,18 +499,32 @@
 <td><p><code class="docutils literal notranslate"><span class="pre">None</span></code></p></td>
 <td><p>The number of samples to select. When both select_ratio and select_num are set, the value corresponding to the smaller number of samples will be applied.</p></td>
 </tr>
-<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">args</span></code></p></td>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">seed</span></code></p></td>
+<td><p>typing.Annotated[int, Ge(ge=0)]</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">42</span></code></p></td>
+<td><p>Random seed for sampling. The default preserves existing selections. Reproducibility requires the same input dataset and row order.</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">args</span></code></p></td>
 <td><p></p></td>
 <td><p><code class="docutils literal notranslate"><span class="pre">''</span></code></p></td>
 <td><p>extra args</p></td>
 </tr>
-<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">kwargs</span></code></p></td>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">kwargs</span></code></p></td>
 <td><p></p></td>
 <td><p><code class="docutils literal notranslate"><span class="pre">''</span></code></p></td>
 <td><p>extra args</p></td>
 </tr>
 </tbody>
 </table>
+<p>For controlled multi-seed sampling experiments, set the seed in each recipe:</p>
+<div class="highlight-yaml notranslate"><div class="highlight"><pre><span></span><span class="nt">process</span><span class="p">:</span>
+<span class="w">  </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">random_selector</span><span class="p">:</span>
+<span class="w">      </span><span class="nt">select_num</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">1000</span>
+<span class="w">      </span><span class="nt">seed</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">7</span>
+</pre></div>
+</div>
+<p>Different seeds produce alternative random samples; they do not guarantee disjoint splits.
+不同种子用于生成不同的随机样本，不保证各次抽样结果互不重叠。</p>
 </section>
 <section id="effect-demonstration">
 <h2>📊 Effect demonstration 效果演示<a class="headerlink" href="#effect-demonstration" title="链接到此标题。">¶</a></h2>

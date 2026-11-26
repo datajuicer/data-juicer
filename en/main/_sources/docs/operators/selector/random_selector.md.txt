@@ -6,6 +6,7 @@ This operator randomly selects a subset of samples based on either a specified r
 
 - `select_ratio`: The ratio of samples to select (0 to 1).
 - `select_num`: The exact number of samples to select.
+- `seed`: Nonnegative random seed, defaulting to 42 to preserve existing selections. Reproducibility requires the same input dataset and row order.
 - If neither `select_ratio` nor `select_num` is set, the dataset remains unchanged.
 
 从数据集中随机选择一部分样本。
@@ -14,6 +15,7 @@ This operator randomly selects a subset of samples based on either a specified r
 
 - `select_ratio`：要选择的样本比例（0 到 1）。
 - `select_num`：要选择的确切样本数量。
+- `seed`：非负随机种子，默认 42，保持原有抽样结果。复现结果要求输入数据及行顺序相同。
 - 如果既未设置 `select_ratio` 也未设置 `select_num`，则数据集保持不变。
 
 Type 算子类型: **selector**
@@ -25,8 +27,21 @@ Tags 标签: cpu
 |--------|------|--------|------|
 | `select_ratio` | typing.Optional[typing.Annotated[float, FieldInfo(annotation=NoneType, required=True, metadata=[Ge(ge=0), Le(le=1)])]] | `None` | The ratio to select. When both select_ratio and select_num are set, the value corresponding to the smaller number of samples will be applied. |
 | `select_num` | typing.Optional[typing.Annotated[int, Gt(gt=0)]] | `None` | The number of samples to select. When both select_ratio and select_num are set, the value corresponding to the smaller number of samples will be applied. |
+| `seed` | typing.Annotated[int, Ge(ge=0)] | `42` | Random seed for sampling. The default preserves existing selections. Reproducibility requires the same input dataset and row order. |
 | `args` |  | `''` | extra args |
 | `kwargs` |  | `''` | extra args |
+
+For controlled multi-seed sampling experiments, set the seed in each recipe:
+
+```yaml
+process:
+  - random_selector:
+      select_num: 1000
+      seed: 7
+```
+
+Different seeds produce alternative random samples; they do not guarantee disjoint splits.
+不同种子用于生成不同的随机样本，不保证各次抽样结果互不重叠。
 
 ## 📊 Effect demonstration 效果演示
 ### test_ratio_select

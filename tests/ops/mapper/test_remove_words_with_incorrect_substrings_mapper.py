@@ -34,6 +34,18 @@ class RemoveWordsWithIncorrectSubstringsMapperTest(DataJuicerTestCaseBase):
             substrings=['http', 'www', '.com', 'href', '//'])
         self._run_remove_words_with_incorrect_sbstrings(samples, op)
 
+    def test_candidate_scan_preserves_stripping_and_whitespace(self):
+        cases = [
+            ([".com", "//"], "keep  //word\t.com\n\tplain!\n\n", "keep //word\t.com\nplain!"),
+            ([".com"], "a.com/path aXcom/path\n  keep\twords  ", "aXcom/path\nkeep\twords"),
+            ([""], "one two\nthree", ""),
+            ([], " one  two\tthree\n\n", "one two\tthree"),
+        ]
+        for substrings, text, target in cases:
+            with self.subTest(substrings=substrings):
+                op = RemoveWordsWithIncorrectSubstringsMapper(substrings=substrings)
+                self._run_remove_words_with_incorrect_sbstrings([{"text": text, "target": target}], op)
+
     def test_zh_case(self):
 
         samples = [{

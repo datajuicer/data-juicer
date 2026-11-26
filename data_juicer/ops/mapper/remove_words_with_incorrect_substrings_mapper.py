@@ -1,3 +1,4 @@
+import re
 from typing import List, Optional
 
 from data_juicer.utils.model_utils import get_model, prepare_model
@@ -62,6 +63,9 @@ class RemoveWordsWithIncorrectSubstringsMapper(Mapper):
         return should_keep
 
     def process_batched(self, samples):
+        candidates = None
+        if not self.tokenization and self.substrings:
+            candidates = re.compile("|".join(re.escape(value) for value in self.substrings)).search
         for idx, text in enumerate(samples[self.text_key]):
             if self.tokenization:
                 tokenizer = get_model(self.model_key)
@@ -75,17 +79,20 @@ class RemoveWordsWithIncorrectSubstringsMapper(Mapper):
                     text = "".join(words)
             else:
                 sentences = split_on_newline_tab_whitespace(text)
-                sentences = [
-                    [
+                # Stripping the ends of a word cannot introduce a substring.
+                # Only possible matches need the original stripping check.
+                if candidates is not None and candidates(text):
+                    sentences = [
                         [
-                            word
-                            for word in subsentence
-                            if self.should_keep_word_with_incorrect_substrings(word, self.substrings)
+                            [
+                                word
+                                for word in subsentence
+                                if not candidates(word) or not candidates(strip(word, SPECIAL_CHARACTERS))
+                            ]
+                            for subsentence in sentence
                         ]
-                        for subsentence in sentence
+                        for sentence in sentences
                     ]
-                    for sentence in sentences
-                ]
                 text = merge_on_whitespace_tab_newline(sentences)
 
             samples[self.text_key][idx] = text

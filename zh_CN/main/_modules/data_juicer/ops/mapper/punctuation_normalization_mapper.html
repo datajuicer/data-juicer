@@ -473,9 +473,8 @@
 
 <span class="sd">    This operator processes a batch of text samples and replaces any unicode punctuation</span>
 <span class="sd">    with its corresponding English punctuation. The mapping includes common substitutions</span>
-<span class="sd">    like "，" to ",", "。" to ".", and "“" to ". It iterates over each character in the text,</span>
-<span class="sd">    replacing it if it is found in the predefined punctuation map. The result is a set of</span>
-<span class="sd">    text samples with consistent punctuation formatting."""</span>
+<span class="sd">    like "，" to ",", "。" to ".", and "“" to ". It replaces only the characters found in the</span>
+<span class="sd">    predefined punctuation map."""</span>
 
     <span class="n">_batched_op</span> <span class="o">=</span> <span class="kc">True</span>
 
@@ -530,9 +529,23 @@
 <div class="viewcode-block" id="PunctuationNormalizationMapper.process_batched">
 <a class="viewcode-back" href="../../../../api/data_juicer.ops.mapper.html#data_juicer.ops.mapper.PunctuationNormalizationMapper.process_batched">[文档]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">process_batched</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">samples</span><span class="p">):</span>
-        <span class="n">samples</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">text_key</span><span class="p">]</span> <span class="o">=</span> <span class="p">[</span>
-            <span class="s2">""</span><span class="o">.</span><span class="n">join</span><span class="p">([</span><span class="bp">self</span><span class="o">.</span><span class="n">punctuation_unicode</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">c</span><span class="p">,</span> <span class="n">c</span><span class="p">)</span> <span class="k">for</span> <span class="n">c</span> <span class="ow">in</span> <span class="n">text</span><span class="p">])</span> <span class="k">for</span> <span class="n">text</span> <span class="ow">in</span> <span class="n">samples</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">text_key</span><span class="p">]</span>
-        <span class="p">]</span>
+        <span class="n">replacements</span> <span class="o">=</span> <span class="p">{</span><span class="n">char</span><span class="p">:</span> <span class="n">replacement</span> <span class="k">for</span> <span class="n">char</span><span class="p">,</span> <span class="n">replacement</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">punctuation_unicode</span><span class="o">.</span><span class="n">items</span><span class="p">()</span> <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">char</span><span class="p">)</span> <span class="o">==</span> <span class="mi">1</span><span class="p">}</span>
+        <span class="c1"># Independent replacements can use native string scans. If a customized</span>
+        <span class="c1"># mapping can introduce another key, preserve single-pass replacement.</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">replacements</span><span class="o">.</span><span class="n">keys</span><span class="p">()</span><span class="o">.</span><span class="n">isdisjoint</span><span class="p">(</span><span class="n">char</span> <span class="k">for</span> <span class="n">value</span> <span class="ow">in</span> <span class="n">replacements</span><span class="o">.</span><span class="n">values</span><span class="p">()</span> <span class="k">for</span> <span class="n">char</span> <span class="ow">in</span> <span class="n">value</span><span class="p">):</span>
+            <span class="n">samples</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">text_key</span><span class="p">]</span> <span class="o">=</span> <span class="p">[</span>
+                <span class="s2">""</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">replacements</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">char</span><span class="p">,</span> <span class="n">char</span><span class="p">)</span> <span class="k">for</span> <span class="n">char</span> <span class="ow">in</span> <span class="n">text</span><span class="p">)</span> <span class="k">for</span> <span class="n">text</span> <span class="ow">in</span> <span class="n">samples</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">text_key</span><span class="p">]</span>
+            <span class="p">]</span>
+            <span class="k">return</span> <span class="n">samples</span>
+
+        <span class="n">only_non_ascii</span> <span class="o">=</span> <span class="ow">not</span> <span class="nb">any</span><span class="p">(</span><span class="n">char</span><span class="o">.</span><span class="n">isascii</span><span class="p">()</span> <span class="k">for</span> <span class="n">char</span> <span class="ow">in</span> <span class="n">replacements</span><span class="p">)</span>
+        <span class="n">normalized</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="k">for</span> <span class="n">text</span> <span class="ow">in</span> <span class="n">samples</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">text_key</span><span class="p">]:</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="p">(</span><span class="n">only_non_ascii</span> <span class="ow">and</span> <span class="n">text</span><span class="o">.</span><span class="n">isascii</span><span class="p">()):</span>
+                <span class="k">for</span> <span class="n">char</span><span class="p">,</span> <span class="n">replacement</span> <span class="ow">in</span> <span class="n">replacements</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+                    <span class="n">text</span> <span class="o">=</span> <span class="n">text</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="n">char</span><span class="p">,</span> <span class="n">replacement</span><span class="p">)</span>
+            <span class="n">normalized</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">text</span><span class="p">)</span>
+        <span class="n">samples</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">text_key</span><span class="p">]</span> <span class="o">=</span> <span class="n">normalized</span>
         <span class="k">return</span> <span class="n">samples</span></div>
 </div>
 

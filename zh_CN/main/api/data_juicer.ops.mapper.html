@@ -4540,9 +4540,8 @@ queries and responses</p></li>
 <p>Normalizes unicode punctuations to their English equivalents in text samples.</p>
 <p>This operator processes a batch of text samples and replaces any unicode punctuation
 with its corresponding English punctuation. The mapping includes common substitutions
-like &quot;，&quot; to &quot;,&quot;, &quot;。&quot; to &quot;.&quot;, and &quot;“&quot; to &quot;. It iterates over each character in the text,
-replacing it if it is found in the predefined punctuation map. The result is a set of
-text samples with consistent punctuation formatting.</p>
+like &quot;，&quot; to &quot;,&quot;, &quot;。&quot; to &quot;.&quot;, and &quot;“&quot; to &quot;. It replaces only the characters found in the
+predefined punctuation map.</p>
 <dl class="py method">
 <dt class="sig sig-object py" id="data_juicer.ops.mapper.PunctuationNormalizationMapper.__init__">
 <span class="sig-name descname"><span class="pre">__init__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/data_juicer/ops/mapper/punctuation_normalization_mapper.html#PunctuationNormalizationMapper.__init__"><span class="viewcode-link"><span class="pre">[源代码]</span></span></a><a class="headerlink" href="#data_juicer.ops.mapper.PunctuationNormalizationMapper.__init__" title="链接到此定义。">¶</a></dt>

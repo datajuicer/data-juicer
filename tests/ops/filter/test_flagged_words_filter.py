@@ -73,6 +73,18 @@ class FlaggedWordFilterTest(DataJuicerTestCaseBase):
                                use_words_aug=True)
         self._run_flagged_words_filter(dataset, tgt_list, op)
 
+    def test_capitalized_entries_case(self):
+        # Some entries in the flagged words list are capitalized
+        # (e.g. 'Cabrón' in es), while words are lower-cased before
+        # matching. They should still be counted as flagged words.
+        ds_list = [{
+            'text': 'Esto es un Cabrón muy fuerte'
+        }]
+        tgt_list = []
+        dataset = Dataset.from_list(ds_list)
+        op = FlaggedWordFilter(lang='es', max_ratio=0.045)
+        self._run_flagged_words_filter(dataset, tgt_list, op)
+
 
 if __name__ == '__main__':
     unittest.main()

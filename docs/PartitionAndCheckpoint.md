@@ -231,9 +231,17 @@ Ray batch boundaries, and validated before any checkpoint is reused.
 
 ### Checkpoints and Temporary Files
 
-Use `checkpoint.enabled` to turn checkpointing on or off and `checkpoint.strategy` to choose when to save. Checkpoints are saved as Parquet datasets under `checkpoint_dir`, which defaults to `<work_dir>/checkpoints`. Keep this directory to resume an interrupted job.
+Use `checkpoint.enabled` to turn checkpointing on or off and `checkpoint.strategy` to choose when to save. Checkpoints are saved under `checkpoint_dir`, which defaults to `<work_dir>/checkpoints`. Keep this directory to resume an interrupted job. The existing `enabled`, `strategy`, `n_ops`, and `op_names` settings and defaults are unchanged.
 
-The executor cleans up its temporary working files when the run exits. Checkpoints are stored separately and remain available for resumption.
+At each selected operator boundary, a dedicated Ray streaming node writes native blocks in independent CPU/GPU-free tasks and passes the original references downstream after successful writes. Mapper and Filter stages can therefore process different blocks concurrently. There are at most two concurrent block writes per node, also bounded by twice Ray's target block size; an oversized block writes alone. The driver receives file metadata, not dataset contents.
+
+Each operator result is written to its own hidden transaction directory. Ray's end-of-input notification and successful completion of all writes trigger a version 2 `manifest.json`, followed by an atomic directory rename on the same POSIX filesystem. The manifest records the original operator index, partition/global scope, ordered successful files, row counts, and available Arrow schema. Files are normally Parquet; Arrow IPC preserves schemas Parquet cannot represent, such as empty structs. Failed/retried attempt files are excluded. Zero-row partitions also receive valid manifests. GPU execution groups split checkpoint data by the internal logical partition tag and remove that tag from saved data.
+
+Only partitions present in a block are filtered and written, and zero-row blocks produce no Parquet or Arrow files. Each block returns its schema once; the transaction collects distinct schemas in first-seen order and merges them once for all partition manifests. An empty partition still has a directory, version marker, and manifest with `files: []`, `rows: 0`, and the available schema, so it can be discovered, loaded, and passed to subsequent operators. For example, 100 blocks each belonging to one of 100 logical partitions produce 100 data files instead of 10,000. Manifest v2 and public APIs are unchanged; existing empty checkpoint files remain readable and are not removed.
+
+Only published, valid checkpoints are eligible for recovery. Missing/truncated files or corrupt/missing manifests invalidate a v2 checkpoint; legacy Parquet checkpoints remain readable. Recovery preserves manifest file order and skips operators using their original recipe indices. Global checkpoints use `checkpoint_op_XXXX_global.parquet`, separate from partition 0, and the newest complete global checkpoint takes priority over per-partition recovery. An incomplete operator is recomputed from the previous complete boundary; there is no within-operator resume. Once the replacement is ready, an existing destination is moved into the hidden transaction directory before publication; a failed publication restores it. An abrupt exit between the two renames leaves the destination absent, so recovery recomputes that boundary. Checkpoint directories require a single publishing driver. Reads disable Hive partition discovery for both v2 and legacy checkpoints, so directory names such as `split=train` do not add or alter data columns.
+
+Cancellation and write failures stop pending writers and remove unpublished transactions during normal shutdown. Abrupt process termination can leave hidden directories, which are ignored on resume. Already published upstream checkpoints survive downstream failures. Final output and stats exports reuse computed results. Use local or shared POSIX paths visible to all Ray workers; object-store publication is not supported. The private adapter supports Ray **2.51.0**, **2.52.0** (the repository lockfile version), and **2.56.1** and rejects unsupported versions before execution.
 
 ## Usage
 
@@ -384,45 +392,13 @@ events = job_utils.load_event_logs()
 
 ## Performance Considerations
 
-### Checkpoint vs Ray Optimization Trade-off
+### Streaming and Necessary Barriers
 
-**Key insight: Checkpointing interferes with Ray's automatic optimization.**
+Checkpoint nodes prevent fusion across their boundaries while allowing upstream and downstream blocks to overlap. Project-level operator fusion is skipped when checkpointing is enabled so recovery indices continue to refer to the original recipe.
 
-Ray optimizes execution by fusing operations together and pipelining data. Each checkpoint forces materialization, which breaks the optimization window:
+Global deduplication, Pipeline operations, shared-state filters, and statistics exports retain their necessary barriers. If configured actor stages cannot fit their CPU/GPU reservations concurrently, the executor materializes the preceding stage and logs the resource reason. It preserves the configured operator concurrency. Partition splitting and final result reuse also require materialization.
 
-```
-Without checkpoints:     op1 → op2 → op3 → op4 → op5
-                         |___________________________|
-                              Ray optimizes entire window
-
-With every_op:           op1 | op2 | op3 | op4 | op5
-                         materialize at each | (5 barriers)
-
-With every_n_ops(5):     op1 → op2 → op3 → op4 → op5 |
-                         |_____________________________|
-                              Ray optimizes all 5 ops
-```
-
-### Checkpoint Cost Analysis
-
-| Cost Type | Typical Value |
-|-----------|---------------|
-| Checkpoint write | ~2-5 seconds |
-| Cheap op execution | ~1-2 seconds |
-| Expensive op execution | minutes to hours |
-
-**For cheap operations, checkpointing costs MORE than re-running on failure.**
-
-Example pipeline analysis:
-```
-filter(1s) → mapper(2s) → deduplicator(300s) → filter(1s)
-
-Strategy         | Overhead  | Protection Value
------------------|-----------|------------------
-every_op         | ~20s      | Save 1-304s on failure
-after dedup only | ~5s       | Save 300s on failure
-disabled         | 0s        | Re-run everything
-```
+Checkpoint overhead depends on output bytes, filesystem bandwidth, block sizes, and resource contention. Compare elapsed time, GPU utilization, and checkpoint storage for the same workload with stage-based checkpoints, streaming checkpoints, and checkpointing disabled; verify output IDs, order, and statistics in all three runs. No fixed speedup or per-checkpoint time is assumed.
 
 ### Strategy Recommendations
 

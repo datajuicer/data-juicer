@@ -1,5 +1,9 @@
+import base64
 import json
 import os
+import shutil
+import tempfile
+import uuid
 from abc import ABC, abstractmethod
 from enum import Enum
 from typing import Any, List, Optional, Tuple
@@ -271,9 +275,59 @@ class RayCheckpointManager(CheckpointManagerBase):
         if self.checkpoint_strategy == CheckpointStrategy.DISABLED:
             self.checkpoint_enabled = False
 
-    def resolve_checkpoint_filename(self, op_idx: int, partition_id: int) -> str:
+    def resolve_checkpoint_filename(self, op_idx: int, partition_id: Optional[int]) -> str:
         """Resolve checkpoint filename using consistent format."""
+        if partition_id is None:
+            return f"checkpoint_op_{op_idx:04d}_global.parquet"
         return f"checkpoint_op_{op_idx:04d}_partition_{partition_id:04d}.parquet"
+
+    def begin_checkpoint(
+        self, op_idx: int, op_name: Optional[str], partition_ids: List[Optional[int]]
+    ) -> "CheckpointTransaction":
+        """Create an unpublished transaction on the same filesystem as its destination."""
+        return CheckpointTransaction(self, op_idx, op_name, partition_ids)
+
+    def for_partitions(self, partition_ids, op_offset=0, partition_column=None, on_start=None, on_complete=None):
+        return StreamingCheckpointer(self, partition_ids, op_offset, partition_column, on_start, on_complete)
+
+    def _read_manifest(self, path):
+        """Validate a published v2 checkpoint without discovering uncommitted files."""
+        with open(os.path.join(path, "manifest.json"), encoding="utf-8") as stream:
+            manifest = json.load(stream)
+        if manifest["version"] != 2 or not isinstance(manifest["files"], list):
+            raise ValueError("Unsupported checkpoint manifest")
+        pid = manifest["partition_id"]
+        if manifest["scope"] != ("global" if pid is None else "partition") or not isinstance(manifest["op_idx"], int):
+            raise ValueError("Invalid checkpoint scope")
+        rows = 0
+        names = set()
+        for entry in manifest["files"]:
+            name = entry["path"]
+            if name != os.path.basename(name) or name in names or entry["format"] not in ("parquet", "arrow"):
+                raise ValueError("Invalid checkpoint file entry")
+            names.add(name)
+            if entry["rows"] < 0 or os.path.getsize(os.path.join(path, name)) != entry["size_bytes"]:
+                raise ValueError("Missing or truncated checkpoint file")
+            rows += entry["rows"]
+        if rows != manifest["rows"] or rows < 0:
+            raise ValueError("Invalid checkpoint row count")
+        if manifest.get("schema"):
+            import pyarrow as pa
+
+            pa.ipc.read_schema(pa.BufferReader(base64.b64decode(manifest["schema"])))
+        return manifest
+
+    def _complete_checkpoint(self, path):
+        if not os.path.exists(path):
+            return False
+        if os.path.isdir(path) and any(
+            os.path.exists(os.path.join(path, name)) for name in ("_checkpoint_v2", "manifest.json")
+        ):
+            try:
+                self._read_manifest(path)
+            except (OSError, ValueError, KeyError, TypeError):
+                return False
+        return True
 
     def should_checkpoint(self, op_idx: int, op_name: str) -> bool:
         """Determine if checkpoint should be created based on configuration strategy."""
@@ -297,7 +351,7 @@ class RayCheckpointManager(CheckpointManagerBase):
         dataset: Any,  # RayDataset or ray.data.Dataset
         op_idx: int,
         op_name: Optional[str] = None,
-        partition_id: int = 0,
+        partition_id: Optional[int] = 0,
         cfg: Optional[Any] = None,
     ) -> str:
         """
@@ -310,19 +364,15 @@ class RayCheckpointManager(CheckpointManagerBase):
         :param cfg: Optional config for RayDataset wrapper
         :return: Path to saved checkpoint
         """
-        checkpoint_filename = self.resolve_checkpoint_filename(op_idx, partition_id)
-        checkpoint_path = os.path.join(self.ckpt_dir, checkpoint_filename)
+        from data_juicer.core.data.ray_checkpoint_adapter import insert_checkpoint
 
-        # Ensure directory exists
-        os.makedirs(os.path.dirname(checkpoint_path), exist_ok=True)
-
-        # Extract ray.data.Dataset if it's wrapped in RayDataset
         ray_data = dataset.data if hasattr(dataset, "data") else dataset
+        saved = insert_checkpoint(ray_data, self, op_idx, op_name, [partition_id]).materialize()
+        if hasattr(dataset, "data"):
+            dataset.data = saved
+        return os.path.join(self.ckpt_dir, self.resolve_checkpoint_filename(op_idx, partition_id))
 
-        # Save as parquet
-        ray_data.write_parquet(checkpoint_path)
-
-        # Log checkpoint save event if event logger is available
+    def _log_checkpoint_save(self, checkpoint_path, op_idx, op_name, partition_id):
         if self.event_logger and hasattr(self.event_logger, "_log_event"):
             from data_juicer.core.executor.event_logging_mixin import EventType
 
@@ -336,13 +386,12 @@ class RayCheckpointManager(CheckpointManagerBase):
             )
 
         logger.info(f"Saved checkpoint: {checkpoint_path}")
-        return checkpoint_path
 
     def load_checkpoint(
         self,
         op_idx: int,
         op_name: Optional[str] = None,
-        partition_id: int = 0,
+        partition_id: Optional[int] = 0,
         cfg: Optional[Any] = None,
     ) -> Optional[Any]:  # Returns RayDataset or None
         """
@@ -357,7 +406,7 @@ class RayCheckpointManager(CheckpointManagerBase):
         checkpoint_filename = self.resolve_checkpoint_filename(op_idx, partition_id)
         checkpoint_path = os.path.join(self.ckpt_dir, checkpoint_filename)
 
-        if not os.path.exists(checkpoint_path):
+        if not self._complete_checkpoint(checkpoint_path):
             return None
 
         try:
@@ -367,7 +416,16 @@ class RayCheckpointManager(CheckpointManagerBase):
             ray = LazyLoader("ray")
 
             # Load from parquet
-            ray_dataset = ray.data.read_parquet(checkpoint_path)
+            if any(os.path.exists(os.path.join(checkpoint_path, name)) for name in ("_checkpoint_v2", "manifest.json")):
+                from data_juicer.core.data.ray_checkpoint_adapter import read_checkpoint
+
+                manifest = self._read_manifest(checkpoint_path)
+                if manifest["op_idx"] != op_idx or manifest["partition_id"] != partition_id:
+                    raise ValueError("Checkpoint scope or operator does not match")
+                ray_dataset = read_checkpoint(checkpoint_path, manifest)
+            else:
+                # Checkpoint paths are storage locations, not Hive partitions.
+                ray_dataset = ray.data.read_parquet(checkpoint_path, partitioning=None)
 
             # Log checkpoint load event if event logger is available
             if self.event_logger and hasattr(self.event_logger, "_log_event"):
@@ -394,7 +452,7 @@ class RayCheckpointManager(CheckpointManagerBase):
             logger.warning(f"Failed to load checkpoint {checkpoint_path}: {e}")
         return None
 
-    def find_latest_checkpoint(self, partition_id: int = 0) -> Optional[Tuple[int, str, str]]:
+    def find_latest_checkpoint(self, partition_id: Optional[int] = 0) -> Optional[Tuple[int, str, str]]:
         """
         Find the latest checkpoint for a partition.
 
@@ -406,8 +464,9 @@ class RayCheckpointManager(CheckpointManagerBase):
         if not os.path.exists(self.ckpt_dir):
             return None
 
+        suffix = "_global.parquet" if partition_id is None else f"_partition_{partition_id:04d}.parquet"
         for filename in os.listdir(self.ckpt_dir):
-            if filename.startswith("checkpoint_op_") and filename.endswith(f"_partition_{partition_id:04d}.parquet"):
+            if filename.startswith("checkpoint_op_") and filename.endswith(suffix):
                 try:
                     # Parse filename: checkpoint_op_XXXX_partition_YYYY.parquet
                     parts = filename.replace(".parquet", "").split("_")
@@ -415,7 +474,14 @@ class RayCheckpointManager(CheckpointManagerBase):
                         op_idx = int(parts[2])
                         # For backward compatibility, we'll use a generic op_name
                         op_name = f"op_{op_idx:04d}"
-                        checkpoint_files.append((op_idx, op_name, os.path.join(self.ckpt_dir, filename)))
+                        path = os.path.join(self.ckpt_dir, filename)
+                        if self._complete_checkpoint(path):
+                            if os.path.exists(os.path.join(path, "manifest.json")):
+                                manifest = self._read_manifest(path)
+                                if manifest["op_idx"] != op_idx or manifest["partition_id"] != partition_id:
+                                    continue
+                                op_name = manifest.get("op_name") or op_name
+                            checkpoint_files.append((op_idx, op_name, path))
                 except (ValueError, IndexError):
                     continue
 
@@ -448,3 +514,189 @@ class RayCheckpointManager(CheckpointManagerBase):
             groups.append((current_start, len(ops), ops[current_start:]))
 
         return groups
+
+
+class StreamingCheckpointer:
+    """Bind checkpoint policy and completion notifications to one lazy pipeline."""
+
+    def __init__(self, manager, partition_ids, op_offset, partition_column, on_start, on_complete):
+        self.manager = manager
+        self.partition_ids = partition_ids
+        self.op_offset = op_offset
+        self.partition_column = partition_column
+        self.on_start = on_start
+        self.on_complete = on_complete
+        self.pending = []
+
+    def before_op(self, op, index):
+        index += self.op_offset
+        if self.on_start:
+            self.on_start(op, index)
+        self.pending.append((op, index))
+
+    def _complete(self, operations):
+        if self.on_complete:
+            for op, index in operations:
+                self.on_complete(op, index)
+
+    def after_op(self, dataset, op, index, schema=None):
+        from data_juicer.core.data.ray_checkpoint_adapter import insert_checkpoint
+
+        index += self.op_offset
+        if self.manager.should_checkpoint(index, op._name):
+            operations = tuple(self.pending)
+            self.pending.clear()
+            return insert_checkpoint(
+                dataset,
+                self.manager,
+                index,
+                op._name,
+                self.partition_ids,
+                self.partition_column,
+                lambda: self._complete(operations),
+                schema,
+            )
+        return dataset
+
+    def finish(self):
+        self._complete(self.pending)
+        self.pending.clear()
+
+
+class CheckpointTransaction:
+    """Driver-side metadata for one complete operator boundary.
+
+    Workers write unique attempt files. Only successful task returns are committed;
+    neither retries nor files left by interrupted attempts enter the manifest.
+    """
+
+    def __init__(self, manager, op_idx, op_name, partition_ids):
+        self.manager = manager
+        self.op_idx = op_idx
+        self.op_name = op_name
+        self.partition_ids = list(partition_ids)
+        self.root = tempfile.mkdtemp(prefix=".checkpoint-", dir=os.path.abspath(manager.ckpt_dir))
+        self.directories = {}
+        self.entries = {pid: [] for pid in partition_ids}
+        # Every partition slice of a block has the same schema. Deduplicate
+        # serialized block schemas in first-seen order, including empty blocks.
+        self.schemas = {}
+        self.published = False
+        for pid in partition_ids:
+            directory = os.path.join(self.root, "global" if pid is None else str(pid))
+            os.mkdir(directory)
+            with open(os.path.join(directory, "_checkpoint_v2"), "w"):
+                pass
+            self.directories[pid] = directory
+
+    def add_result(self, result):
+        schema, entries = result
+        for pid, entry in entries:
+            if pid not in self.entries:
+                raise ValueError(f"Unexpected checkpoint partition {pid}")
+            self.entries[pid].append(entry)
+        if schema:
+            self.schemas.setdefault(schema, None)
+
+    def publish(self, fallback_schema=None):
+        import pyarrow as pa
+
+        schemas = [pa.ipc.read_schema(pa.BufferReader(base64.b64decode(s))) for s in self.schemas]
+        if not any(schema.names for schema in schemas) and isinstance(fallback_schema, pa.Schema):
+            schemas = [fallback_schema]
+        schema = pa.unify_schemas(schemas, promote_options="permissive") if schemas else None
+        serialized_schema = base64.b64encode(schema.serialize()).decode("ascii") if schema is not None else None
+        # Prepare all manifests before publishing any logical partition.
+        for pid, directory in self.directories.items():
+            manifest = {
+                "version": 2,
+                "op_idx": self.op_idx,
+                "op_name": self.op_name,
+                "scope": "global" if pid is None else "partition",
+                "partition_id": pid,
+                "files": self.entries[pid],
+                "rows": sum(entry["rows"] for entry in self.entries[pid]),
+                "schema": serialized_schema,
+            }
+            with open(os.path.join(directory, "manifest.json"), "w", encoding="utf-8") as stream:
+                json.dump(manifest, stream)
+                stream.flush()
+                os.fsync(stream.fileno())
+        for pid, directory in self.directories.items():
+            final = os.path.join(self.manager.ckpt_dir, self.manager.resolve_checkpoint_filename(self.op_idx, pid))
+            # A rejected checkpoint still occupies its published path. Move it
+            # aside only after the replacement is ready; a non-empty directory
+            # cannot be overwritten by rename. Keep it for rollback until the
+            # new directory has been published, then abort() removes the backup.
+            backup = os.path.join(self.root, f"replaced-{pid}")
+            try:
+                os.rename(final, backup)
+            except FileNotFoundError:
+                backup = None
+            try:
+                os.rename(directory, final)
+            except OSError:
+                if backup is not None:
+                    os.rename(backup, final)
+                raise
+            self.manager._log_checkpoint_save(final, self.op_idx, self.op_name, pid)
+        self.published = True
+        self.abort()
+
+    def abort(self):
+        """Remove staging data and replaced checkpoints, after writers stop."""
+        shutil.rmtree(self.root, ignore_errors=True)
+
+
+def write_checkpoint_block(block, directories, partition_column=None, offsets=None):
+    """Return (serialized schema, [(partition ID, file metadata), ...]).
+
+    Persist only nonempty slices; the block schema also describes empty partitions.
+    """
+    import pyarrow as pa
+    import pyarrow.compute as pc
+    import pyarrow.parquet as pq
+    from ray.data.block import BlockAccessor
+
+    table = BlockAccessor.for_block(block).to_arrow()
+    if offsets:
+        table = table.slice(offsets[0], offsets[1] - offsets[0])
+    if partition_column:
+        if partition_column not in table.column_names:
+            if table.num_rows:
+                raise ValueError("An operator removed the internal logical-partition tag")
+            table = table.append_column(partition_column, pa.array([], type=pa.int64()))
+        tags = table[partition_column]
+        ids = pc.unique(tags).to_pylist()
+        if not set(ids).issubset(directories):
+            raise ValueError(f"Unexpected logical partition tags: {ids}")
+        table = table.drop([partition_column])
+        tables = ((pid, table.filter(pc.equal(tags, pid))) for pid in ids)
+    else:
+        if len(directories) != 1:
+            raise ValueError("Multiple logical partitions require a partition column")
+        tables = [(next(iter(directories)), table)]
+    result = []
+    for pid, part in tables:
+        if not part.num_rows:
+            continue
+        filename = f"{uuid.uuid4().hex}.parquet"
+        path = os.path.join(directories[pid], filename)
+        file_format = "parquet"
+        try:
+            pq.write_table(part, path)
+        except pa.ArrowNotImplementedError:
+            # Parquet cannot represent empty structs (e.g. DJ metadata). Arrow IPC
+            # preserves these and nullable schemas without altering user columns.
+            filename = f"{uuid.uuid4().hex}.arrow"
+            path = os.path.join(directories[pid], filename)
+            file_format = "arrow"
+            with pa.OSFile(path, "wb") as sink, pa.ipc.new_file(sink, part.schema) as writer:
+                writer.write_table(part)
+        result.append(
+            (
+                pid,
+                {"path": filename, "format": file_format, "rows": part.num_rows, "size_bytes": os.path.getsize(path)},
+            )
+        )
+    return base64.b64encode(table.schema.serialize()).decode("ascii"), result

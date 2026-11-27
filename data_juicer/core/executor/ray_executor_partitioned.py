@@ -305,6 +305,12 @@ class PartitionedRayExecutor(ExecutorBase, DAGExecutionMixin, EventLoggingMixin)
             checkpoint_op_names=checkpoint_op_names,
             event_logger=self,
         )
+        if self.ckpt_manager.checkpoint_enabled:
+            from data_juicer.core.data.ray_checkpoint_adapter import (
+                validate_checkpoint_adapter,
+            )
+
+            validate_checkpoint_adapter()
 
         logger.info(f"Checkpointing: {'enabled' if self.ckpt_manager.checkpoint_enabled else 'disabled'}")
         if self.ckpt_manager.checkpoint_enabled:
@@ -1300,47 +1306,9 @@ class PartitionedRayExecutor(ExecutorBase, DAGExecutionMixin, EventLoggingMixin)
             current.data = current.data.drop_columns([_LOGICAL_PARTITION_COLUMN])
             return current
 
-        op_groups = self.ckpt_manager.group_operations_for_checkpointing(ops)
-        current = dataset
-        for group_idx, (start_idx, end_idx, group_ops) in enumerate(op_groups):
-            if not group_ops:
-                continue
-            input_rows = current.data.count()
-            started = time.time()
-            for partition_id in partition_ids:
-                if self.pipeline_dag:
-                    self._pre_execute_operations_with_dag_monitoring(group_ops, partition_id=partition_id)
-            current = current.process(group_ops)
-            current.data = current.data.materialize()
-            if _LOGICAL_PARTITION_COLUMN not in self._schema_names(current.data):
-                raise RuntimeError(f"Operation group {group_idx + 1} removed the internal logical-partition tag.")
-            duration = time.time() - started
-            output_rows = current.data.count()
-            metrics = {"duration": duration, "input_rows": input_rows, "output_rows": output_rows}
-            for partition_id in partition_ids:
-                if self.pipeline_dag:
-                    self._post_execute_operations_with_dag_monitoring(
-                        group_ops,
-                        partition_id=partition_id,
-                        metrics=metrics,
-                    )
-
-            last_op_idx = end_idx - 1
-            last_op_name = ops[last_op_idx]._name
-            if self.ckpt_manager.should_checkpoint(last_op_idx, last_op_name):
-                for partition_id in partition_ids:
-                    logical_dataset = self._wrap_with_precomputed_parallelism(
-                        self._logical_partition_view(current.data, partition_id)
-                    )
-                    self.ckpt_manager.save_checkpoint(
-                        logical_dataset,
-                        last_op_idx,
-                        last_op_name,
-                        partition_id,
-                        cfg=self.cfg,
-                    )
-
-        current.data = current.data.drop_columns([_LOGICAL_PARTITION_COLUMN])
+        checkpointer = self._streaming_checkpointer(partition_ids, partition_column=_LOGICAL_PARTITION_COLUMN)
+        current = dataset.process(ops, checkpointer=checkpointer)
+        current.data = current.data.drop_columns([_LOGICAL_PARTITION_COLUMN]).materialize()
         return current
 
     def _process_partition(
@@ -1477,64 +1445,9 @@ class PartitionedRayExecutor(ExecutorBase, DAGExecutionMixin, EventLoggingMixin)
     def _gpu_actor_requests_fit(
         stage_specs: List[Dict[str, Any]], counts: List[int], total_gpus: float, gpu_devices_per_node=None
     ) -> bool:
-        """Check scheduling and measured-memory fractions on individual GPUs.
+        from data_juicer.utils.ray_cluster_utils import gpu_actor_requests_fit
 
-        Requests are processed largest first and placed with a best-fit policy,
-        preserving the largest remaining contiguous shares for later requests.
-        """
-        device_count = int(math.floor(total_gpus + 1e-9))
-        if device_count < 1:
-            return False
-        requests = []
-        for spec, count in zip(stage_specs, counts):
-            requests.extend([(spec["num_gpus"], spec["memory_fraction"], spec["max_per_device"])] * count)
-        requests.sort(key=lambda item: (max(item[0], item[1]), item[1]), reverse=True)
-        node_sizes = gpu_devices_per_node if gpu_devices_per_node is not None else (device_count,)
-        devices = [
-            {"gpu": 0.0, "memory": 0.0, "workers": 0, "node": node}
-            for node, size in enumerate(node_sizes)
-            for _ in range(size)
-        ]
-        for gpu_fraction, memory_fraction, max_per_device in requests:
-            if gpu_fraction > 1:
-                if not float(gpu_fraction).is_integer():
-                    return False
-                # Ray reserves whole, same-node devices for integer requests.
-                for node in range(len(node_sizes)):
-                    free = [device for device in devices if device["node"] == node and device["workers"] == 0]
-                    if len(free) >= int(gpu_fraction):
-                        for device in free[: int(gpu_fraction)]:
-                            device.update(gpu=1.0, memory=1.0, workers=1)
-                        break
-                else:
-                    return False
-                continue
-            eligible = [
-                device
-                for device in devices
-                if (
-                    device["gpu"] + gpu_fraction <= 1.0 + 1e-9
-                    and device["memory"] + memory_fraction <= 1.0 + 1e-9
-                    and device["workers"] < max_per_device
-                )
-            ]
-            if not eligible:
-                return False
-
-            # Best fit avoids fragmenting devices by putting the request in the
-            # eligible device with the least remaining dominant resource share.
-            device = min(
-                eligible,
-                key=lambda item: (
-                    max(1.0 - item["gpu"] - gpu_fraction, 1.0 - item["memory"] - memory_fraction),
-                    2.0 - item["gpu"] - gpu_fraction - item["memory"] - memory_fraction,
-                    max_per_device - item["workers"] - 1,
-                ),
-            )
-            device["gpu"] += gpu_fraction
-            device["memory"] += memory_fraction
-            device["workers"] += 1
-        return True
+        return gpu_actor_requests_fit(stage_specs, counts, total_gpus, gpu_devices_per_node)
 
     def _configure_throughput_aware_gpu_parallelism(
         self,
@@ -2099,192 +2012,103 @@ class PartitionedRayExecutor(ExecutorBase, DAGExecutionMixin, EventLoggingMixin)
         wrapped._auto_proc = False
         return wrapped
 
-    def _process_with_convergence(self, dataset: RayDataset, ops: List, convergence_points: List[int]):
-        """
-        Process dataset with convergence support for global operations.
-        """
-        logger.info("Processing with convergence support for global operations...")
+    def _streaming_checkpointer(self, partition_ids, op_offset=0, partition_column=None):
+        """Use original operator indices for monitoring and checkpoint publication."""
+        started = {}
 
-        # Find the first convergence point
-        first_convergence = min(convergence_points)
-        logger.info(f"First convergence point at operation {first_convergence}")
-
-        # Split operations into pre-convergence and post-convergence
-        pre_convergence_ops = ops[:first_convergence]
-        post_convergence_ops = ops[first_convergence:]
-
-        logger.info(f"Pre-convergence operations: {len(pre_convergence_ops)}")
-        logger.info(f"Post-convergence operations: {len(post_convergence_ops)}")
-
-        # Process partitions up to convergence point
-        if pre_convergence_ops:
-            logger.info("Processing partitions up to convergence point...")
-            processed_dataset = self._process_with_simple_partitioning(dataset, pre_convergence_ops)
-        else:
-            logger.info("No pre-convergence operations, using original dataset...")
-            processed_dataset = dataset
-
-        # Merge partitions for global operations
-        logger.info("Merging partitions for global operations...")
-        merged_dataset = processed_dataset.data
-
-        # Process merged dataset with post-convergence operations
-        if post_convergence_ops:
-            logger.info("Processing merged dataset with global operations...")
-            merged_ray_dataset = self._wrap_with_precomputed_parallelism(merged_dataset)
-
-            # Pre-execute DAG monitoring (log operation start events)
-            if self.pipeline_dag:
-                self._pre_execute_operations_with_dag_monitoring(post_convergence_ops, partition_id=0)
-
-            # Execute operations
-            final_dataset = merged_ray_dataset.process(post_convergence_ops)
-
-            # Post-execute DAG monitoring (log operation completion events)
-            if self.pipeline_dag:
-                self._post_execute_operations_with_dag_monitoring(post_convergence_ops, partition_id=0)
-
-            logger.info("Global operations completed. Final dataset ready for export")
-            return final_dataset
-        else:
-            # No post-convergence operations, just return the merged result
-            return RayDataset(merged_dataset, cfg=self.cfg)
-
-    def _process_with_checkpointing(self, dataset: RayDataset, partition_id: int, ops: List) -> RayDataset:
-        """
-        Process dataset with checkpointing support.
-        Groups operations and checkpoints between groups based on strategy.
-        """
-        logger.info(f"Processing partition {partition_id} with checkpointing support...")
-
-        if not self.ckpt_manager.checkpoint_enabled:
-            logger.info(f"Checkpointing disabled, processing all operations at once for partition {partition_id}")
-
-            # Get input row count before processing
-            input_rows = dataset.data.count()
-            start_time = time.time()
-
-            # Pre-execute DAG monitoring (log operation start events)
-            if self.pipeline_dag:
-                self._pre_execute_operations_with_dag_monitoring(ops, partition_id=partition_id)
-
-            # Execute operations (lazy)
-            processed_dataset = dataset.process(ops)
-
-            # Force materialization to get real execution (required for union anyway)
-            processed_dataset.data = processed_dataset.data.materialize()
-
-            # Get metrics after execution
-            duration = time.time() - start_time
-            output_rows = processed_dataset.data.count()
-
-            logger.info(f"Partition {partition_id}: Processed {input_rows}→{output_rows} rows in {duration:.2f}s")
-
-            # Post-execute DAG monitoring with real metrics
-            if self.pipeline_dag:
-                metrics = {"duration": duration, "input_rows": input_rows, "output_rows": output_rows}
-                self._post_execute_operations_with_dag_monitoring(ops, partition_id=partition_id, metrics=metrics)
-
-            return processed_dataset
-
-        # check the latest checkpoint for the partition
-        latest_checkpoint = self.ckpt_manager.find_latest_checkpoint(partition_id)
-
-        # Group operations based on checkpoint strategy
-        op_groups = self.ckpt_manager.group_operations_for_checkpointing(ops)
-        logger.info(f"Grouped {len(ops)} operations into {len(op_groups)} groups for checkpointing")
-        logger.info(f"Detailed op groups: {op_groups}")
-
-        current_dataset = dataset
-
-        for group_idx, (start_idx, end_idx, group_ops) in enumerate(op_groups):
-            logger.info(
-                f"Processing partition {partition_id}, group {group_idx + 1}/{len(op_groups)}: operations {start_idx}-{end_idx-1}"
-            )
-
-            if latest_checkpoint and latest_checkpoint[0] >= end_idx:
-                logger.info(
-                    f"Partition {partition_id}: All operations in group {group_idx + 1} already processed (checkpoint at op {latest_checkpoint[0]}, group ends at {end_idx-1}), skipping"
-                )
-                continue
-
-            if latest_checkpoint and latest_checkpoint[0] >= start_idx:
-                logger.info(f"Partition {partition_id}: Resuming from checkpoint at operation {latest_checkpoint[0]}")
-                current_dataset = self.ckpt_manager.load_checkpoint(
-                    latest_checkpoint[0], latest_checkpoint[1], partition_id, cfg=self.cfg
-                )
-                if current_dataset is None:
-                    logger.warning(f"Partition {partition_id}: Failed to load checkpoint, starting from beginning")
-                    current_dataset = dataset
-                    group_ops = ops[start_idx:end_idx]  # Start from beginning of group
-                    logger.info(
-                        f"Partition {partition_id}: Will process {len(group_ops)} operations from beginning of group"
+        def notify(op, index, complete=False):
+            for pid in partition_ids:
+                node = None
+                if self.pipeline_dag:
+                    node = self._get_dag_node_for_operation(op._name, index, partition_id=pid)
+                if complete:
+                    duration = time.monotonic() - started[index]
+                    if node:
+                        self._mark_dag_node_completed(node, duration)
+                    self._log_event(
+                        event_type=EventType.OP_COMPLETE,
+                        partition_id=pid,
+                        operation_idx=index,
+                        operation_name=op._name,
+                        message=f"Completed operation {index}: {op._name}",
+                        metadata={"duration": duration, "scope": "global" if pid is None else "partition"},
                     )
                 else:
-                    current_dataset._auto_proc = False
-                    logger.info(
-                        f"Partition {partition_id}: Successfully loaded checkpoint, resuming from operation {latest_checkpoint[0] + 1}"
-                    )
-                    group_ops = ops[latest_checkpoint[0] + 1 : end_idx]  # Resume from checkpoint
-                    if not group_ops:
-                        logger.info(
-                            f"Partition {partition_id}: All operations in this group already processed, skipping"
-                        )
-                        continue
-                    else:
-                        logger.info(
-                            f"Partition {partition_id}: Will process {len(group_ops)} remaining operations from checkpoint"
-                        )
-
-            # Process the group of operations
-            if group_ops:
-                logger.info(
-                    f"Partition {partition_id}: Processing {len(group_ops)} operations in group {group_idx + 1}"
-                )
-
-                # Get input row count before processing
-                input_rows = current_dataset.data.count()
-                start_time = time.time()
-
-                # Pre-execute DAG monitoring (log operation start events)
-                if self.pipeline_dag:
-                    self._pre_execute_operations_with_dag_monitoring(group_ops, partition_id=partition_id)
-
-                # Execute operations (lazy)
-                current_dataset = current_dataset.process(group_ops)
-
-                # Force materialization (required for checkpointing anyway)
-                current_dataset.data = current_dataset.data.materialize()
-
-                # Get metrics after execution
-                duration = time.time() - start_time
-                output_rows = current_dataset.data.count()
-
-                logger.info(
-                    f"Partition {partition_id}, group {group_idx + 1}: Processed {input_rows}→{output_rows} rows in {duration:.2f}s"
-                )
-
-                # Post-execute DAG monitoring with real metrics
-                if self.pipeline_dag:
-                    metrics = {"duration": duration, "input_rows": input_rows, "output_rows": output_rows}
-                    self._post_execute_operations_with_dag_monitoring(
-                        group_ops, partition_id=partition_id, metrics=metrics
+                    started[index] = time.monotonic()
+                    if node:
+                        self._mark_dag_node_started(node)
+                    self._log_event(
+                        event_type=EventType.OP_START,
+                        partition_id=pid,
+                        operation_idx=index,
+                        operation_name=op._name,
+                        message=f"Starting operation {index}: {op._name}",
                     )
 
-            # Checkpoint after the last operation in the group
-            if group_ops:
-                last_op_idx = end_idx - 1
-                last_op_name = ops[last_op_idx]._name
-                if self.ckpt_manager.should_checkpoint(last_op_idx, last_op_name):
-                    logger.info(
-                        f"Partition {partition_id}: Creating checkpoint after operation {last_op_idx}: {last_op_name}"
-                    )
-                    # Data already materialized above, safe to checkpoint
-                    self.ckpt_manager.save_checkpoint(
-                        current_dataset, last_op_idx, last_op_name, partition_id, cfg=self.cfg
-                    )
+        return self.ckpt_manager.for_partitions(
+            partition_ids,
+            op_offset=op_offset,
+            partition_column=partition_column,
+            on_start=lambda op, index: notify(op, index),
+            on_complete=lambda op, index: notify(op, index, complete=True),
+        )
 
-        return current_dataset
+    def _process_with_convergence(self, dataset: RayDataset, ops: List, convergence_points: List[int]):
+        """Resume the newest complete global boundary, otherwise resume partitions."""
+        first_convergence = min(convergence_points)
+        latest = self.ckpt_manager.find_latest_checkpoint(None) if self.ckpt_manager.checkpoint_enabled else None
+        if latest and first_convergence <= latest[0] < len(ops):
+            if getattr(self, "_is_resuming", False):
+                self._split_dataset_deterministic(dataset)
+            current = self.ckpt_manager.load_checkpoint(latest[0], latest[1], None, cfg=self.cfg)
+            if current is None:
+                raise RuntimeError("The selected global checkpoint could not be loaded")
+            current._auto_proc = False
+            offset = latest[0] + 1
+        else:
+            if first_convergence == 0 and self.ckpt_manager.checkpoint_enabled:
+                # A recipe starting with a global op still needs input metadata
+                # for explicit resume validation.
+                self._split_dataset_deterministic(dataset)
+            current = (
+                self._process_with_simple_partitioning(dataset, ops[:first_convergence])
+                if first_convergence
+                else dataset
+            )
+            offset = first_convergence
+        return self._process_with_checkpointing(current, None, ops[offset:], op_offset=offset)
+
+    def _process_with_checkpointing(
+        self, dataset: RayDataset, partition_id: Optional[int], ops: List, op_offset: int = 0
+    ) -> RayDataset:
+        """Build one streaming plan, then retain its final materialized result."""
+        if not self.ckpt_manager.checkpoint_enabled:
+            if self.pipeline_dag:
+                self._pre_execute_operations_with_dag_monitoring(ops, partition_id=partition_id)
+            current = dataset.process(ops)
+            current.data = current.data.materialize()
+            if self.pipeline_dag:
+                self._post_execute_operations_with_dag_monitoring(ops, partition_id=partition_id)
+            return current
+
+        latest = self.ckpt_manager.find_latest_checkpoint(partition_id)
+        current = dataset
+        if latest and op_offset <= latest[0] < op_offset + len(ops):
+            loaded = self.ckpt_manager.load_checkpoint(latest[0], latest[1], partition_id, cfg=self.cfg)
+            if loaded is None:
+                raise RuntimeError("The selected checkpoint could not be loaded")
+            current = loaded
+            current._auto_proc = False
+            skipped = latest[0] + 1 - op_offset
+            ops = ops[skipped:]
+            op_offset += skipped
+        if not ops:
+            current.data = current.data.materialize()
+            return current
+        checkpointer = self._streaming_checkpointer([partition_id], op_offset=op_offset)
+        current = current.process(ops, checkpointer=checkpointer)
+        current.data = current.data.materialize()
+        return current
 
     def _find_work_directory(self, job_id: str) -> Optional[str]:
         """Find the work directory based on job_id."""
@@ -2373,7 +2197,9 @@ class PartitionedRayExecutor(ExecutorBase, DAGExecutionMixin, EventLoggingMixin)
                 adaptive_batching_enabled(op, True)
 
         # Check for op_fusion configuration with safe attribute access
-        if hasattr(self.cfg, "op_fusion") and self.cfg.op_fusion:
+        if getattr(self.cfg, "op_fusion", False) and self.ckpt_manager.checkpoint_enabled:
+            logger.info("Skipping project operator fusion to preserve original checkpoint boundaries and indices.")
+        elif getattr(self.cfg, "op_fusion", False):
             logger.info(f"Start OP fusion and reordering with strategy [{self.cfg.fusion_strategy}]...")
             ops = fuse_operators(
                 ops,

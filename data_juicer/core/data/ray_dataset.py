@@ -202,12 +202,72 @@ class RayDataset(DJDataset):
         columns_result = self.data.columns()
         # Handle empty dataset: columns() returns None when the schema is unknown
         # (lazy/empty datasets) and [] for datasets with a known schema but 0 rows
-        if not columns_result:
+        if not columns_result and checkpointer is None:
             logger.warning("Dataset is empty (0 rows or unknown schema), skipping operator processing")
             return self
-        cached_columns = set(columns_result)
+        cached_columns = set(columns_result or [])
+        checkpoint_schema = self.data.schema(fetch_if_missing=False) if checkpointer else None
+        checkpoint_schema = getattr(checkpoint_schema, "base_schema", checkpoint_schema)
+        resident_actors = []
+        resident_gpu_specs = []
+        resident_gpu_counts = []
+        if checkpointer:
+            from data_juicer.utils.ray_cluster_utils import (
+                detect_cluster_topology,
+                gpu_actor_requests_fit,
+            )
 
-        for op in operators:
+            topology = detect_cluster_topology()
+
+        for index, op in enumerate(operators):
+            # Global operators may eagerly consume their input or inspect schema.
+            # Reuse that stable result for their output and downstream checkpoints.
+            if checkpointer and isinstance(op, (Deduplicator, Pipeline)):
+                self.data = self.data.materialize()
+                resident_actors.clear()
+                resident_gpu_specs.clear()
+                resident_gpu_counts.clear()
+            if checkpointer:
+                actor = op.use_ray_actor()
+                count = (op.num_proc[0] if isinstance(op.num_proc, (tuple, list)) else op.num_proc) if actor else 1
+                request = (
+                    float(op.num_cpus if op.num_cpus is not None else 1) * count,
+                    float(op.num_gpus or 0) * count,
+                )
+                resources = ray.cluster_resources()
+                specs, counts = list(resident_gpu_specs), list(resident_gpu_counts)
+                if float(op.num_gpus or 0) > 0:
+                    specs.append(
+                        {
+                            "num_gpus": float(op.num_gpus),
+                            "memory_fraction": float(getattr(op, "_gpu_memory_fraction", 0) or op.num_gpus),
+                            "max_per_device": float("inf"),
+                        }
+                    )
+                    counts.append(count)
+                gpu_fit = not specs or gpu_actor_requests_fit(
+                    specs, counts, resources.get("GPU", 0), topology.gpu_devices_per_node or None
+                )
+                totals_fit = not any(
+                    sum(item[axis] for item in resident_actors) + request[axis] > resources.get(key, 0)
+                    for axis, key in enumerate(("CPU", "GPU"))
+                )
+                if resident_actors and not (totals_fit and gpu_fit):
+                    logger.info(
+                        f"Materializing before {op._name}: resident actor stages cannot fit the configured "
+                        "CPU/GPU reservations concurrently; preserving operator concurrency."
+                    )
+                    self.data = self.data.materialize()
+                    resident_actors.clear()
+                    resident_gpu_specs.clear()
+                    resident_gpu_counts.clear()
+                if actor:
+                    resident_actors.append(request)
+                    if float(op.num_gpus or 0) > 0:
+                        resident_gpu_specs.append(specs[-1])
+                        resident_gpu_counts.append(count)
+            if checkpointer:
+                checkpointer.before_op(op, index)
             try:
                 cached_columns = self._run_single_op(op, cached_columns, tracer=tracer, stats_only=stats_only)
             except Exception as e:
@@ -222,6 +282,17 @@ class RayDataset(DJDataset):
                         op.runtime_env = original_runtime_env
                 else:
                     raise e
+            if checkpointer:
+                if getattr(op, "stats_export_path", None) is not None:
+                    resident_actors.clear()
+                    resident_gpu_specs.clear()
+                    resident_gpu_counts.clear()
+                self.data = checkpointer.after_op(self.data, op, index, checkpoint_schema)
+        if checkpointer:
+            # Cache the final result once. Export, metrics and repeated API reads
+            # must not execute a checkpoint-bearing lazy plan again.
+            self.data = self.data.materialize()
+            checkpointer.finish()
         return self
 
     def _run_single_op(self, op, cached_columns=None, tracer=None, stats_only=False):
@@ -368,6 +439,7 @@ class RayDataset(DJDataset):
                     if use_instance_for_ray_tasks:
                         self.data = self.data.materialize()
                 if op.stats_export_path is not None:
+                    self.data = self.data.materialize()
                     self.data.write_json(op.stats_export_path, force_ascii=False)
                 if not stats_only:
                     # Wrap process method with tracer for sample-level collection

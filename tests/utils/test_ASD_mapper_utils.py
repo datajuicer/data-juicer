@@ -175,6 +175,49 @@ class FindMaxIntersectionTest(DataJuicerTestCaseBase):
         self.assertEqual(len(remaining), 1)
         self.assertEqual(remaining[0]["track"]["frame"], [100, 101])
 
+    @staticmethod
+    def _exhaustive_indices(frames):
+        all_frames = set()
+        for frame in frames:
+            all_frames.update(frame)
+        best = []
+        for value in all_frames:
+            indices = [i for i, frame in enumerate(frames) if value in frame]
+            if len(indices) > len(best):
+                best = indices
+        return best, [i for i in range(len(frames)) if i not in best]
+
+    def _check_frames(self, frames):
+        records = [{"id": i, "track": {"frame": frame}} for i, frame in enumerate(frames)]
+        before = [np.array(frame, copy=True) for frame in frames]
+        expected = self._exhaustive_indices(frames)
+        result = find_max_intersection_and_remaining_dicts(records)
+        self.assertEqual(tuple([item["id"] for item in group] for group in result), expected)
+        for group in result:
+            for item in group:
+                self.assertIs(item, records[item["id"]])
+        for original, frame in zip(before, frames):
+            np.testing.assert_array_equal(original, frame)
+
+    def test_empty_frames_duplicates_and_ties(self):
+        for frames in (
+            [[], []],
+            [[], [3, 3, 3], [3], [4, 4, 4, 4], [4]],
+            [[8], [8, 2], [2], []],
+            [[-1, 2**40], [-1], [2**40]],
+        ):
+            for factory in (list, lambda values: np.array(values, dtype=np.int64)):
+                with self.subTest(frames=frames, factory=factory):
+                    self._check_frames([factory(values) for values in frames])
+
+    def test_random_overlaps_match_exhaustive_selection(self):
+        rng = np.random.default_rng(41)
+        for case in range(40):
+            frames = [rng.integers(-20, 80, size=rng.integers(0, 60)) for _ in range(rng.integers(1, 20))]
+            with self.subTest(case=case):
+                self._check_frames(frames)
+                self._check_frames([frame.tolist() for frame in frames])
+
 
 class GetFacesArrayTest(DataJuicerTestCaseBase):
     """Test cropping a padded face patch from a frame."""

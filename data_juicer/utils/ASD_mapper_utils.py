@@ -3,6 +3,7 @@ import math
 import os
 import pickle
 import subprocess
+from collections import Counter
 
 import numpy as np
 import tqdm
@@ -401,27 +402,25 @@ def find_max_intersection_and_remaining_dicts(dicts):
     track_frames = [d["track"]["frame"] for d in dicts]
 
     all_elements = set()
+    frame_counts = Counter()
     for frame in track_frames:
         all_elements.update(frame)
+        # A track contributes once even if its frame list contains duplicates.
+        frame_counts.update(set(frame))
 
-    max_combination_indices = []
-    _ = set()
+    if not all_elements:
+        return [], list(dicts)
 
-    for elem in all_elements:
-        current_combination_indices = []
-        current_intersection = set([elem])
-
-        for i, frame in enumerate(track_frames):
-            if elem in frame:
-                current_combination_indices.append(i)
-                current_intersection.intersection_update(frame)
-
-        if len(current_combination_indices) > len(max_combination_indices):
-            max_combination_indices = current_combination_indices
-            _ = current_intersection
-
-    max_combination = [dicts[i] for i in max_combination_indices]
-    remaining_dicts = [d for i, d in enumerate(dicts) if i not in max_combination_indices]
+    # Keep the same set traversal for ties as the original exhaustive scan.
+    # Only the winning frame needs membership checks against every track.
+    best_frame = max(all_elements, key=frame_counts.__getitem__)
+    max_combination = []
+    remaining_dicts = []
+    for item, frame in zip(dicts, track_frames):
+        if best_frame in frame:
+            max_combination.append(item)
+        else:
+            remaining_dicts.append(item)
 
     return max_combination, remaining_dicts
 

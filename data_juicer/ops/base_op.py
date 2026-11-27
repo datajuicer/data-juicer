@@ -1,6 +1,6 @@
 import copy
 from abc import ABCMeta
-from functools import wraps
+from functools import cache, wraps
 
 import numpy as np
 import pyarrow as pa
@@ -25,6 +25,20 @@ NON_STATS_FILTERS = Registry("Non-stats Filters")
 TAGGING_OPS = Registry("Tagging Operators")
 ATTRIBUTION_FILTERS = Registry("Attribution Filters")
 DEFAULT_BATCH_SIZE = 1000
+
+
+@cache
+def _empty_stats_scalar():
+    from datasets.arrow_writer import ArrowWriter
+
+    # Let the same writer as Dataset.map infer the empty dictionary type.
+    # Datasets versions differ in whether they use an empty struct or JSON.
+    sink = pa.BufferOutputStream()
+    with ArrowWriter(stream=sink) as writer:
+        writer.write({Fields.stats: {}})
+        writer.finalize()
+    with pa.ipc.open_stream(sink.getvalue()) as reader:
+        return reader.read_next_batch().column(0)[0]
 
 
 def convert_list_dict_to_dict_list(samples):
@@ -659,13 +673,22 @@ class OP(metaclass=OPMetaClass):
             and self._name not in NON_STATS_FILTERS.modules
             and Fields.stats not in dataset.features
         ):
-            dataset = dataset.map(
-                add_same_content_to_new_column,
-                fn_kwargs={"new_column_name": Fields.stats, "initial_value": {}},
-                num_proc=self.runtime_np(),
-                batch_size=self.batch_size,
-                desc="Adding new column for stats",
-            )
+            dataset_format = dataset.format
+            if (
+                dataset.num_rows
+                and dataset._indices is None
+                and dataset_format["type"] is None
+                and dataset_format["columns"] == dataset.column_names
+            ):
+                dataset = dataset.add_column(Fields.stats, pa.repeat(_empty_stats_scalar(), dataset.num_rows))
+            else:
+                dataset = dataset.map(
+                    add_same_content_to_new_column,
+                    fn_kwargs={"new_column_name": Fields.stats, "initial_value": {}},
+                    num_proc=self.runtime_np(),
+                    batch_size=self.batch_size,
+                    desc="Adding new column for stats",
+                )
         if self.index_key is not None and self.index_key not in dataset.features:
 
             def add_index(sample, idx):

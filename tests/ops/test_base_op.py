@@ -905,6 +905,7 @@ class TestBaseParamsSync(unittest.TestCase):
             "RayVideoDeduplicator": ("ray", "ray_partitioned"),
             "RayBTSMinhashDeduplicator": ("ray", "ray_partitioned"),
             "RayBTSMinhashCppDeduplicator": ("ray", "ray_partitioned"),
+            "RayImageBTSMinhashDeduplicator": ("ray", "ray_partitioned"),
         }
 
         for name, expected_modes in expected.items():

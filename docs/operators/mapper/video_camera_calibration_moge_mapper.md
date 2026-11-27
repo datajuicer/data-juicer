@@ -54,3 +54,8 @@ VideoCameraCalibrationMogeMapper(model_path='Ruicheng/moge-2-vitl', frame_num=1,
 - [source code 源代码](../../../data_juicer/ops/mapper/video_camera_calibration_moge_mapper.py)
 - [unit test 单元测试](../../../tests/ops/mapper/test_video_camera_calibration_moge_mapper.py)
 - [Return operator list 返回算子列表](../../Operators.md)
+
+## Ordered frame sequences 有序帧序列
+
+See [frame input and output contracts](../../VideoFrameSequences.md) for
+frame-only samples, grouped input, empty sequences and result correspondence.

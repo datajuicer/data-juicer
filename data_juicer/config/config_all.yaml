@@ -831,6 +831,19 @@ process:
       camera_calibration_field: 'camera_calibration'        # The field name where the camera calibration info is stored.
       batch_size_each_video: 1000                           # Number of frames to process and save per temporary TS file batch.
       crf: 22                                               # Constant Rate Factor (CRF) for FFmpeg encoding quality.
+  - video_animal_pose_mapper:                              # Detect quadruped animal pose.
+      vitpose_model_path: 'apt36k.pth'
+      vitpose_config: 'configs/animal/2d_kpt_sview_rgb_img/topdown_heatmap/apt36k/ViTPose_huge_apt36k_256x192.py'
+      yoloe_model_path: 'yoloe-26x-seg.pt'
+      animal_class: []
+      if_save_visualization: True
+      frame_num: 3
+      duration: 0
+  - video_face_keypoints_mapper:                           # Detect 98 face keypoints.
+      ldeq_model_path: 'final.pth.tar'
+      if_save_visualization: False
+      frame_num: 3
+      duration: 0
   - video_whole_body_pose_estimation_mapper:            # Input a video containing people, and use the DWPose model to extract the body, hand, feet, and face keypoints of the human subjects in the video, i.e., 2D Whole-body Pose Estimation.
       onnx_det_model: 'yolox_l.onnx'                          # The path to 'yolox_l.onnx'.
       onnx_pose_model: 'dw-ll_ucoco_384.onnx'                 # The path to 'dw-ll_ucoco_384.onnx'.

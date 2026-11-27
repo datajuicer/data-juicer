@@ -46,7 +46,7 @@ Data-Juicer 中的算子分为以下 8 种类型。
 | [filter](#filter) | 59 | Filters out low-quality samples. 过滤低质量样本。 |
 | [formatter](#formatter) | 8 | Discovers, loads, and canonicalizes source data. 发现、加载、规范化原始数据。 |
 | [grouper](#grouper) | 3 | Group samples to batched samples. 将样本分组，每一组组成一个批量样本。 |
-| [mapper](#mapper) | 142 | Edits and transforms samples. 对数据样本进行编辑和转换。 |
+| [mapper](#mapper) | 144 | Edits and transforms samples. 对数据样本进行编辑和转换。 |
 | [pipeline](#pipeline) | 3 | Applies dataset-level processing; both input and output are datasets. 执行数据集级别的操作，输入和输出均为完整数据集。 |
 | [selector](#selector) | 6 | Selects top samples based on ranking. 基于排序选取高质量样本。 |
 
@@ -283,6 +283,7 @@ All the specific operators are listed below, each featured with several capabili
 | usage_counter_mapper | 💻CPU 🟡Beta | Write token usage to meta from choices/usage (OpenAI/Anthropic-style). 从选择/用法 (OpenAI/Anthropic风格) 将令牌用法写入meta。 | [info](operators/mapper/usage_counter_mapper.md) | - |
 | vggt_mapper | 🎬Video 🚀GPU 🟡Beta | Input a video of a single scene, and use VGGT to extract information including Camera Pose, Depth Maps, Point Maps, and 3D Point Tracks. 输入单个场景的视频，并使用VGGT提取包括相机姿态、深度图、点图和3D点轨迹的信息。 | [info](operators/mapper/vggt_mapper.md) | - |
 | video_active_speaker_detect_mapper | 🎬Video 🚀GPU 🟡Beta | Detect active speakers in a video by analyzing visual face tracks and audio signals, including consistency checks for gender and age. 通过分析视觉面部轨迹和音频信号 (包括性别和年龄的一致性检查) 来检测视频中的活动说话者。 | [info](operators/mapper/video_active_speaker_detect_mapper.md) | [HumanVBench](https://arxiv.org/abs/2412.17574) |
+| video_animal_pose_mapper | 🎬Video 🚀GPU 🟡Beta | Detect quadruped animal pose on the video. 检测视频中的四足动物姿态。 | [info](operators/mapper/video_animal_pose_mapper.md) | - |
 | video_atomic_action_segment_mapper | 🎬Video 💻CPU 🟡Beta | Segment a unified hand trajectory into atomic action clips. 将统一的手轨迹分割成原子动作片段。 | [info](operators/mapper/video_atomic_action_segment_mapper.md) | [arxiv 2510.21571](https://arxiv.org/abs/2510.21571) |
 | video_audio_ASR_mapper | 🎬Video 🚀GPU 🟡Beta | Mapper to generate video tags from audio streams extracted by video using the Audio Spectrogram Transformer. 映射器使用音频频谱图转换器从视频提取的音频流生成视频标签。 | [info](operators/mapper/video_audio_ASR_mapper.md) | [HumanVBench](https://arxiv.org/abs/2412.17574) |
 | video_audio_detect_age_gender_mapper | 🎬Video 🚀GPU 🟡Beta | Detect age and gender (male, female, child) from video audio signals using a pretrained wav2vec2 model. 使用预训练的wav2vec2模型从视频音频信号中检测年龄和性别 (男性，女性，儿童)。 | [info](operators/mapper/video_audio_detect_age_gender_mapper.md) | [HumanVBench](https://arxiv.org/abs/2412.17574) |
@@ -301,6 +302,7 @@ All the specific operators are listed below, each featured with several capabili
 | video_clip_reassembly_mapper | 🎬Video 💻CPU 🟡Beta | Reassemble hand-action results from overlapping video clips. 重新组合-重叠视频剪辑的手部动作结果。 | [info](operators/mapper/video_clip_reassembly_mapper.md) | [arxiv 2510.21571](https://arxiv.org/abs/2510.21571) |
 | video_depth_estimation_mapper | 🎬Video 🚀GPU 🟡Beta | Perform depth estimation on the video. 对视频进行深度估计。 | [info](operators/mapper/video_depth_estimation_mapper.md) | - |
 | video_extract_frames_mapper | 🔮Multimodal 💻CPU 🟢Stable | Mapper to extract frames from video files according to specified methods. 映射器根据指定的方法从视频文件中提取帧。 | [info](operators/mapper/video_extract_frames_mapper.md) | - |
+| video_face_keypoints_mapper | 🎬Video 🚀GPU 🟡Beta | Detect face keypoints (98 points) on the video. 检测视频中的98个人脸关键点。 | [info](operators/mapper/video_face_keypoints_mapper.md) | - |
 | video_face_blur_mapper | 🎬Video 💻CPU 🟢Stable | Mapper to blur faces detected in videos. 映射器模糊在视频中检测到的人脸。 | [info](operators/mapper/video_face_blur_mapper.md) | - |
 | video_ffmpeg_wrapped_mapper | 🎬Video 💻CPU 🟢Stable | Wraps FFmpeg video filters for processing video files in a dataset. 包装FFmpeg视频过滤器，用于处理数据集中的视频文件。 | [info](operators/mapper/video_ffmpeg_wrapped_mapper.md) | - |
 | video_hand_action_compute_mapper | 🎬Video 💻CPU 🟡Beta | Compute 7-DoF actions and 8-dim states from hand reconstruction and camera pose results. 根据手重建和相机姿态结果计算7自由度动作和8-dim状态。 | [info](operators/mapper/video_hand_action_compute_mapper.md) | - |

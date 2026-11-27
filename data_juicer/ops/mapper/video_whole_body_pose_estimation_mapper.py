@@ -2,13 +2,17 @@ import os
 
 from pydantic import PositiveInt
 
-import data_juicer
 from data_juicer.ops.load import load_ops
 from data_juicer.utils.cache_utils import DATA_JUICER_ASSETS_CACHE
 from data_juicer.utils.constant import Fields, MetaKeys
 from data_juicer.utils.lazy_loader import LazyLoader
-from data_juicer.utils.mm_utils import SpecialTokens
 from data_juicer.utils.model_utils import get_model, prepare_model
+from data_juicer.utils.video_perception_utils import (
+    get_video_frame_groups,
+    get_video_output_features,
+    get_video_visualization_dir,
+    nested_video_feature,
+)
 
 from ..base_op import OPERATORS, Mapper
 from ..op_fusion import LOADED_VIDEOS
@@ -73,7 +77,9 @@ class VideoWholeBodyPoseEstimationMapper(Mapper):
             "frame_num": frame_num,
             "duration": duration,
             "frame_dir": frame_dir,
-            "frame_key": MetaKeys.video_frames,
+            "frame_field": MetaKeys.video_frames,
+            "video_key": self.video_key,
+            "legacy_split_by_text_token": False,
             "num_proc": None,  # Disable multiprocessing to avoid nested process pool issue
             "auto_op_parallelism": False,  # Disable auto parallelism to avoid nested process pool issue
         }
@@ -84,69 +90,58 @@ class VideoWholeBodyPoseEstimationMapper(Mapper):
         )
 
         self.frame_num = frame_num
+        self.frame_field = MetaKeys.video_frames
         self.duration = duration
         self.tag_field_name = tag_field_name
         self.frame_dir = frame_dir
         self.if_save_visualization = if_save_visualization
         self.save_visualization_dir = save_visualization_dir
 
-    def process_single(self, sample=None, rank=None):
+    def _get_output_features(self, input_features):
+        if input_features is None:
+            return None
+        fields = {
+            name: nested_video_feature("float64", 4)
+            for name in ["body_keypoints", "foot_keypoints", "faces_keypoints", "hands_keypoints"]
+        }
+        fields.update(
+            bbox_results_list=nested_video_feature("float64", 3),
+            frame_paths=nested_video_feature("string"),
+            video_indices=nested_video_feature("int64"),
+        )
+        return get_video_output_features(input_features, self.tag_field_name, fields)
 
-        # check if it's generated already
-        if self.tag_field_name in sample[Fields.meta]:
+    def process_single(self, sample=None, rank=None):
+        meta = sample.setdefault(Fields.meta, {})
+        if self.tag_field_name in meta:
+            return sample
+        groups = get_video_frame_groups(sample, self.frame_field, self.video_key, self.fused_ops[0])
+        names = ["body_keypoints", "foot_keypoints", "faces_keypoints", "hands_keypoints", "bbox_results_list"]
+        tags = {name: [] for name in names}
+        tags.update(frame_paths=[], video_indices=[])
+        if not any(groups):
+            meta[self.tag_field_name] = tags
             return sample
 
-        # there is no video in this sample
-        if self.video_key not in sample or not sample[self.video_key]:
-            return []
-
-        # load videos
-        ds_list = [{"text": SpecialTokens.video, "videos": sample[self.video_key]}]
-
-        dataset = data_juicer.core.data.NestedDataset.from_list(ds_list)
-        dataset = self.fused_ops[0].run(dataset)
-
         dwpose_model = get_model(self.model_key, rank, self.use_cuda())
-
-        frames_root = os.path.join(self.frame_dir, os.path.splitext(os.path.basename(sample[self.video_key][0]))[0])
-        frame_names = os.listdir(frames_root)
-        frames_path = sorted([os.path.join(frames_root, frame_name) for frame_name in frame_names])
-
-        body_keypoints = []
-        foot_keypoints = []
-        faces_keypoints = []
-        hands_keypoints = []
-        bbox_results_list = []
-
-        if self.if_save_visualization:
-            if not os.path.exists(self.save_visualization_dir):
-                os.makedirs(self.save_visualization_dir, exist_ok=True)
-            frame_dir_for_temp_video = os.path.join(
-                self.save_visualization_dir, os.path.basename(frames_root) + "_pose_output"
-            )
-            if not os.path.exists(frame_dir_for_temp_video):
-                os.makedirs(frame_dir_for_temp_video, exist_ok=True)
-
-        for temp_frame_id, temp_frame in enumerate(frames_path):
-            oriImg = cv2.imread(temp_frame)
-            body, foot, faces, hands, bbox_results, draw_pose = dwpose_model(oriImg)
-            body_keypoints.append(body)
-            foot_keypoints.append(foot)
-            faces_keypoints.append(faces)
-            hands_keypoints.append(hands)
-            bbox_results_list.append(bbox_results)
-
+        for video_index, paths in enumerate(groups):
+            if not paths:
+                continue
             if self.if_save_visualization:
-                plt = LazyLoader("matplotlib.pyplot")
-                plt.imsave(
-                    os.path.join(frame_dir_for_temp_video, f"temp_frame_pose_{str(temp_frame_id)}.jpg"), draw_pose
+                visualization_dir = get_video_visualization_dir(
+                    self.save_visualization_dir, OP_NAME, paths, video_index
                 )
-
-        sample[Fields.meta][self.tag_field_name] = {}
-        sample[Fields.meta][self.tag_field_name]["body_keypoints"] = body_keypoints
-        sample[Fields.meta][self.tag_field_name]["foot_keypoints"] = foot_keypoints
-        sample[Fields.meta][self.tag_field_name]["faces_keypoints"] = faces_keypoints
-        sample[Fields.meta][self.tag_field_name]["hands_keypoints"] = hands_keypoints
-        sample[Fields.meta][self.tag_field_name]["bbox_results_list"] = bbox_results_list
-
+            for frame_index, path in enumerate(paths):
+                image = cv2.imread(path)
+                if image is None:
+                    raise ValueError(f"Could not read video frame: {path}")
+                results = dwpose_model(image)
+                for name, values in zip(names, results[:5]):
+                    tags[name].append(values.tolist() if hasattr(values, "tolist") else values)
+                tags["frame_paths"].append(path)
+                tags["video_indices"].append(video_index)
+                if self.if_save_visualization:
+                    plt = LazyLoader("matplotlib.pyplot")
+                    plt.imsave(os.path.join(visualization_dir, f"temp_frame_pose_{frame_index}.jpg"), results[5])
+        meta[self.tag_field_name] = tags
         return sample

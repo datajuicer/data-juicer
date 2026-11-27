@@ -7,6 +7,10 @@ from loguru import logger
 from data_juicer.utils.constant import CameraCalibrationKeys, Fields, MetaKeys
 from data_juicer.utils.lazy_loader import LazyLoader
 from data_juicer.utils.model_utils import get_model, prepare_model
+from data_juicer.utils.video_perception_utils import (
+    get_video_output_features,
+    nested_video_feature,
+)
 
 from ..base_op import OPERATORS, Mapper
 from ..op_fusion import LOADED_VIDEOS
@@ -266,40 +270,52 @@ class VideoCameraCalibrationMogeMapper(Mapper):
                 # Convert numpy arrays to standard Python lists for Ray/Arrow compatibility
                 tag_dict[CameraCalibrationKeys.mask] = [arr.tolist() for arr in final_mask_list]
 
+    def _get_output_features(self, input_features):
+        if input_features is None:
+            return None
+        from datasets import List
+
+        fields = {}
+        for name, dimensions, dtype in [
+            ("intrinsics", 3, "float64"),
+            ("hfov", 1, "float64"),
+            ("vfov", 1, "float64"),
+            ("points", 4, "float64"),
+            ("depth", 3, "float64"),
+            ("mask", 3, "bool"),
+        ]:
+            if getattr(self, "output_" + name):
+                if self.save_dir is not None and name in ("points", "depth", "mask"):
+                    fields[getattr(CameraCalibrationKeys, name)] = nested_video_feature("string")
+                else:
+                    fields[getattr(CameraCalibrationKeys, name)] = nested_video_feature(dtype, dimensions)
+        return get_video_output_features(input_features, self.tag_field_name, List(fields))
+
     def process_single(self, sample=None, rank=None):
-        # there is no video in this sample
-        if self.video_key not in sample or not sample[self.video_key]:
+        meta = sample.setdefault(Fields.meta, {})
+        frames = sample.get(self.frame_field)
+        if frames is None:
             return sample
-
-        if sample.get(self.frame_field) is None:
-            return sample
-
-        if not self._need_anything(sample):
-            return sample
-
-        model = get_model(self.model_key, rank, self.use_cuda())
-
-        videos_frames = sample[self.frame_field]
-        num_videos = len(videos_frames)
-
-        if self.tag_field_name not in sample[Fields.meta]:
-            sample[Fields.meta][self.tag_field_name] = [{} for _ in range(num_videos)]
-
-        tags_list = sample[Fields.meta][self.tag_field_name]
-
+        if frames and isinstance(frames[0], (str, bytes, os.PathLike)):
+            frames = [frames]
+        num_videos = len(frames)
+        if self.tag_field_name not in meta:
+            meta[self.tag_field_name] = [{} for _ in range(num_videos)]
+        tags_list = meta[self.tag_field_name]
         if len(tags_list) != num_videos:
             raise ValueError(
                 f"The field {self.tag_field_name} in sample[Fields.meta] "
                 "should be a list of dict with the same length as the number of videos."
             )
+        if not any(frames) or not self._need_anything(sample):
+            return sample
 
-        if rank is not None:
-            device = f"cuda:{rank}" if self.use_cuda() else "cpu"
-        else:
-            device = "cuda" if self.use_cuda() else "cpu"
-
-        for video_idx in range(num_videos):
-            tag_dict = tags_list[video_idx]
-            self._process_video_frames_batched(videos_frames[video_idx], model, device, tag_dict)
-
+        model = get_model(self.model_key, rank, self.use_cuda())
+        device = (
+            f"cuda:{rank % torch.cuda.device_count()}"
+            if self.use_cuda() and rank is not None
+            else ("cuda" if self.use_cuda() else "cpu")
+        )
+        for video_idx, paths in enumerate(frames):
+            self._process_video_frames_batched(paths, model, device, tags_list[video_idx])
         return sample

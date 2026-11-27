@@ -8,6 +8,10 @@ from data_juicer.utils.cache_utils import DATA_JUICER_MODELS_CACHE
 from data_juicer.utils.constant import CameraCalibrationKeys, Fields, MetaKeys
 from data_juicer.utils.lazy_loader import LazyLoader
 from data_juicer.utils.model_utils import get_model, prepare_model
+from data_juicer.utils.video_perception_utils import (
+    get_video_output_features,
+    nested_video_feature,
+)
 
 from ..base_op import OPERATORS, Mapper
 from ..op_fusion import LOADED_VIDEOS
@@ -361,10 +365,8 @@ class VideoHandReconstructionHaworMapper(Mapper):
         """Decode raw frames (bytes or paths) to numpy arrays.
 
         Returns:
-            images: list of decoded BGR numpy arrays (None entries skipped)
+            images: list of decoded BGR numpy arrays in the input order
         """
-        from loguru import logger as _logger
-
         images = []
         for i, frame in enumerate(raw_frames):
             if isinstance(frame, bytes):
@@ -374,8 +376,7 @@ class VideoHandReconstructionHaworMapper(Mapper):
                 image = cv2.imread(frame)
 
             if image is None:
-                _logger.warning(f"Frame {i} decode failed, skipping.")
-                continue
+                raise ValueError(f"Could not read video frame at index {i}.")
             images.append(image)
         return images
 
@@ -399,46 +400,31 @@ class VideoHandReconstructionHaworMapper(Mapper):
             file_paths.append(file_path)
         return file_paths
 
+    def _get_output_features(self, input_features):
+        if input_features is None:
+            return None
+        from datasets import List, Value
+
+        hand = {name: nested_video_feature("float64", 2) for name in ["global_orient", "hand_pose", "betas", "transl"]}
+        hand.update(frame_ids=nested_video_feature("int64"), joints_cam=nested_video_feature("float64", 3))
+        fields = {"fov_x": Value("float64"), "img_focal": Value("float64"), "left": hand, "right": hand}
+        return get_video_output_features(input_features, self.tag_field_name, List(fields))
+
     def process_single(self, sample=None, rank=None):
-
-        # check if it's generated already
-        if self.tag_field_name in sample[Fields.meta]:
+        meta = sample.setdefault(Fields.meta, {})
+        if self.tag_field_name in meta:
             return sample
-
-        # there is no video in this sample
-        if self.video_key not in sample or not sample[self.video_key]:
+        videos_frames = sample.get(self.frame_field)
+        if videos_frames is None:
             return sample
-
-        hawor_model, model_cfg, mano_right, mano_left = get_model(self.model_key, rank, self.use_cuda())
-        hand_det_model = get_model(self.det_model_key, rank, self.use_cuda())
-
-        videos_frames = sample[self.frame_field]
-        sample[Fields.meta][self.tag_field_name] = []
-
-        for video_idx in range(len(videos_frames)):
-            cur_camera_calibration = sample[Fields.meta][self.camera_calibration_field][video_idx]
-            all_fov_x = cur_camera_calibration.get(CameraCalibrationKeys.hfov, None)
-
-            # If horizontal FoV is not directly available, compute from intrinsics.
-            # K is in pixel coordinates: hfov = 2 * arctan(cx / fx),
-            # where cx ≈ width/2 (principal point convention).
-            if all_fov_x is None:
-                intrinsics = cur_camera_calibration.get(CameraCalibrationKeys.intrinsics, None)
-                if intrinsics is not None:
-                    all_fov_x = [2 * np.arctan(k[0][2] / k[0][0]) for k in intrinsics]
-                else:
-                    raise ValueError(
-                        f"The sample must include an '{CameraCalibrationKeys.hfov}' field or an '{CameraCalibrationKeys.intrinsics}' field in the camera calibration info to store the horizontal FoV for hand reconstruction."
-                    )
-
-            frames = videos_frames[video_idx]
+        if videos_frames and isinstance(videos_frames[0], (str, bytes, os.PathLike)):
+            videos_frames = [videos_frames]
+        results = []
+        hawor_model = hand_det_model = None
+        for video_idx, frames in enumerate(videos_frames):
             images = self._decode_frames(frames)
-
             N = len(images)
             if N == 0:
-                from loguru import logger as _logger
-
-                _logger.warning(f"Video {video_idx}: all frames decode failed, " "producing empty hand output.")
                 empty_hand = {
                     "frame_ids": [],
                     "global_orient": [],
@@ -447,7 +433,7 @@ class VideoHandReconstructionHaworMapper(Mapper):
                     "transl": [],
                     "joints_cam": None,
                 }
-                sample[Fields.meta][self.tag_field_name].append(
+                results.append(
                     {
                         "fov_x": 0.0,
                         "img_focal": 0.0,
@@ -456,6 +442,26 @@ class VideoHandReconstructionHaworMapper(Mapper):
                     }
                 )
                 continue
+            calibrations = meta.get(self.camera_calibration_field, [])
+            if len(calibrations) != len(videos_frames):
+                raise ValueError("Camera calibration must contain one entry per video frame sequence.")
+            cur_camera_calibration = calibrations[video_idx]
+            all_fov_x = cur_camera_calibration.get(CameraCalibrationKeys.hfov)
+            if all_fov_x is None:
+                intrinsics = cur_camera_calibration.get(CameraCalibrationKeys.intrinsics)
+                if intrinsics is not None:
+                    all_fov_x = [2 * np.arctan(k[0][2] / k[0][0]) for k in intrinsics]
+                else:
+                    raise ValueError(
+                        f"The sample must include an '{CameraCalibrationKeys.hfov}' field or an "
+                        f"'{CameraCalibrationKeys.intrinsics}' field in the camera calibration info."
+                    )
+            if len(all_fov_x) not in (1, N):
+                raise ValueError("Camera calibration must provide one shared FoV or one FoV per input frame.")
+            if hawor_model is None:
+                hawor_model, model_cfg, mano_right, mano_left = get_model(self.model_key, rank, self.use_cuda())
+                hand_det_model = get_model(self.det_model_key, rank, self.use_cuda())
+
             H, W = images[0].shape[:2]
 
             # Use median FoV across all frames
@@ -518,7 +524,7 @@ class VideoHandReconstructionHaworMapper(Mapper):
                     "joints_cam": joints_cam.tolist() if joints_cam is not None else None,  # (T, 21, 3)
                 }
 
-            sample[Fields.meta][self.tag_field_name].append(
+            results.append(
                 {
                     "fov_x": float(fov_x),
                     "img_focal": float(img_focal),
@@ -527,4 +533,5 @@ class VideoHandReconstructionHaworMapper(Mapper):
                 }
             )
 
+        meta[self.tag_field_name] = results
         return sample

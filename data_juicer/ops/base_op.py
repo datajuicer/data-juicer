@@ -778,9 +778,15 @@ class Mapper(OP):
         """
         raise NotImplementedError
 
+    def _get_output_features(self, input_features):
+        """Optionally declare HF output types, including empty-list predictions."""
+        return None
+
     def run(self, dataset, *, exporter=None, tracer=None):
         dataset = super(Mapper, self).run(dataset)
         source_features = dataset.features if getattr(self, "drop_text", False) else None
+        output_features = self._get_output_features(getattr(dataset, "features", None))
+        map_kwargs = {"features": output_features} if output_features is not None else {}
 
         # Wrap process method with tracer for sample-level collection
         from data_juicer.core.tracer import should_trace_op
@@ -801,6 +807,7 @@ class Mapper(OP):
                 with_rank=self.use_cuda(),
                 batch_size=self.batch_size,
                 desc=self._name + "_process",
+                **map_kwargs,
             )
         finally:
             # Restore original process method

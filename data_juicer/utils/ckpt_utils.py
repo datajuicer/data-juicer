@@ -578,7 +578,9 @@ class CheckpointTransaction:
         self.root = tempfile.mkdtemp(prefix=".checkpoint-", dir=os.path.abspath(manager.ckpt_dir))
         self.directories = {}
         self.entries = {pid: [] for pid in partition_ids}
-        self.schemas = {pid: [] for pid in partition_ids}
+        # Every partition slice of a block has the same schema. Deduplicate
+        # serialized block schemas in first-seen order, including empty blocks.
+        self.schemas = {}
         self.published = False
         for pid in partition_ids:
             directory = os.path.join(self.root, "global" if pid is None else str(pid))
@@ -588,22 +590,24 @@ class CheckpointTransaction:
             self.directories[pid] = directory
 
     def add_result(self, result):
-        for pid, entry, schema in result:
+        schema, entries = result
+        for pid, entry in entries:
             if pid not in self.entries:
                 raise ValueError(f"Unexpected checkpoint partition {pid}")
             self.entries[pid].append(entry)
-            if schema:
-                self.schemas[pid].append(schema)
+        if schema:
+            self.schemas.setdefault(schema, None)
 
     def publish(self, fallback_schema=None):
         import pyarrow as pa
 
+        schemas = [pa.ipc.read_schema(pa.BufferReader(base64.b64decode(s))) for s in self.schemas]
+        if not any(schema.names for schema in schemas) and isinstance(fallback_schema, pa.Schema):
+            schemas = [fallback_schema]
+        schema = pa.unify_schemas(schemas, promote_options="permissive") if schemas else None
+        serialized_schema = base64.b64encode(schema.serialize()).decode("ascii") if schema is not None else None
         # Prepare all manifests before publishing any logical partition.
         for pid, directory in self.directories.items():
-            schemas = [pa.ipc.read_schema(pa.BufferReader(base64.b64decode(s))) for s in self.schemas[pid]]
-            if not any(schema.names for schema in schemas) and isinstance(fallback_schema, pa.Schema):
-                schemas = [fallback_schema]
-            schema = pa.unify_schemas(schemas, promote_options="permissive") if schemas else None
             manifest = {
                 "version": 2,
                 "op_idx": self.op_idx,
@@ -612,7 +616,7 @@ class CheckpointTransaction:
                 "partition_id": pid,
                 "files": self.entries[pid],
                 "rows": sum(entry["rows"] for entry in self.entries[pid]),
-                "schema": base64.b64encode(schema.serialize()).decode("ascii") if schema is not None else None,
+                "schema": serialized_schema,
             }
             with open(os.path.join(directory, "manifest.json"), "w", encoding="utf-8") as stream:
                 json.dump(manifest, stream)
@@ -645,7 +649,10 @@ class CheckpointTransaction:
 
 
 def write_checkpoint_block(block, directories, partition_column=None, offsets=None):
-    """Persist a native block on a worker and return file metadata only."""
+    """Return (serialized schema, [(partition ID, file metadata), ...]).
+
+    Persist only nonempty slices; the block schema also describes empty partitions.
+    """
     import pyarrow as pa
     import pyarrow.compute as pc
     import pyarrow.parquet as pq
@@ -659,18 +666,20 @@ def write_checkpoint_block(block, directories, partition_column=None, offsets=No
             if table.num_rows:
                 raise ValueError("An operator removed the internal logical-partition tag")
             table = table.append_column(partition_column, pa.array([], type=pa.int64()))
-        ids = set(table[partition_column].to_pylist())
-        if not ids.issubset(directories):
+        tags = table[partition_column]
+        ids = pc.unique(tags).to_pylist()
+        if not set(ids).issubset(directories):
             raise ValueError(f"Unexpected logical partition tags: {ids}")
-        tables = [(pid, table.filter(pc.equal(table[partition_column], pid))) for pid in directories]
-        tables = [(pid, part.drop([partition_column])) for pid, part in tables]
+        table = table.drop([partition_column])
+        tables = ((pid, table.filter(pc.equal(tags, pid))) for pid in ids)
     else:
         if len(directories) != 1:
             raise ValueError("Multiple logical partitions require a partition column")
         tables = [(next(iter(directories)), table)]
     result = []
     for pid, part in tables:
-        # Empty files retain schema, including for partitions filtered to zero rows.
+        if not part.num_rows:
+            continue
         filename = f"{uuid.uuid4().hex}.parquet"
         path = os.path.join(directories[pid], filename)
         file_format = "parquet"
@@ -688,7 +697,6 @@ def write_checkpoint_block(block, directories, partition_column=None, offsets=No
             (
                 pid,
                 {"path": filename, "format": file_format, "rows": part.num_rows, "size_bytes": os.path.getsize(path)},
-                base64.b64encode(part.schema.serialize()).decode("ascii"),
             )
         )
-    return result
+    return base64.b64encode(table.schema.serialize()).decode("ascii"), result

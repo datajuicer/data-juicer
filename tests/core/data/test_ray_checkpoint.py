@@ -1,7 +1,9 @@
 """Streaming checkpoint contracts and recovery integration (Ray 2.51/2.52/2.56)."""
 
+import base64
 import json
 import os
+import time
 from pathlib import Path
 from types import SimpleNamespace
 from unittest.mock import Mock
@@ -125,6 +127,209 @@ def _executor(manager):
 def _manifest(manager, index, pid=0):
     path = os.path.join(manager.ckpt_dir, manager.resolve_checkpoint_filename(index, pid))
     return manager._read_manifest(path)
+
+
+def _manifest_schema(manifest):
+    return pa.ipc.read_schema(pa.BufferReader(base64.b64decode(manifest["schema"])))
+
+
+def test_sparse_checkpoint_writes_only_present_partitions(tmp_path, record_property):
+    import pyarrow.parquet as pq
+
+    manager = RayCheckpointManager(str(tmp_path))
+    tx = manager.begin_checkpoint(0, "sparse", list(range(100)))
+    started = time.perf_counter()
+    for pid in range(100):
+        table = pa.table({"id": [pid], _LOGICAL_PARTITION_COLUMN: [pid]})
+        schema, entries = write_checkpoint_block(table, tx.directories, _LOGICAL_PARTITION_COLUMN)
+        assert len(entries) == 1
+        assert entries[0][0] == pid
+        tx.add_result((schema, entries))
+    assert len(tx.schemas) == 1
+    tx.publish()
+    record_property("checkpoint_seconds", time.perf_counter() - started)
+    data_files = [path for path in tmp_path.rglob("*") if path.is_file() and path.suffix in (".parquet", ".arrow")]
+    assert len(data_files) == 100
+    record_property("data_files", len(data_files))
+    record_property("data_bytes", sum(path.stat().st_size for path in data_files))
+    for pid in range(100):
+        manifest = _manifest(manager, 0, pid)
+        assert manifest["rows"] == 1
+        assert len(manifest["files"]) == 1
+        assert manifest["files"][0]["rows"] == 1
+        path = tmp_path / manager.resolve_checkpoint_filename(0, pid) / manifest["files"][0]["path"]
+        assert pq.read_table(path).to_pylist() == [{"id": pid}]
+
+
+def test_checkpoint_unifies_distinct_block_schemas_once(tmp_path, monkeypatch):
+    manager = RayCheckpointManager(str(tmp_path))
+    tx = manager.begin_checkpoint(0, "schema", [0, 1, 2])
+    tables = [
+        pa.table({"id": [0], "nullable": [None], _LOGICAL_PARTITION_COLUMN: [0]}),
+        pa.table({"id": [1], "nullable": [3], "extra": ["value"], _LOGICAL_PARTITION_COLUMN: [1]}),
+    ]
+    for table in tables * 2:
+        tx.add_result(write_checkpoint_block(table, tx.directories, _LOGICAL_PARTITION_COLUMN))
+    assert len(tx.schemas) == 2
+    assert list(tx.schemas) == [
+        base64.b64encode(table.drop([_LOGICAL_PARTITION_COLUMN]).schema.serialize()).decode("ascii") for table in tables
+    ]
+    unify = Mock(wraps=pa.unify_schemas)
+    monkeypatch.setattr(pa, "unify_schemas", unify)
+    tx.publish()
+    assert unify.call_count == 1
+    expected = pa.schema([("id", pa.int64()), ("nullable", pa.int64()), ("extra", pa.string())])
+    for pid in range(3):
+        assert _manifest_schema(_manifest(manager, 0, pid)).equals(expected)
+    assert _manifest(manager, 0, 2)["files"] == []
+
+
+@pytest.mark.parametrize("tags", [[0, 99], [0, None]])
+def test_checkpoint_rejects_invalid_partition_tags_before_writing(tmp_path, tags):
+    tx = RayCheckpointManager(str(tmp_path)).begin_checkpoint(0, "invalid", [0, 1])
+    with pytest.raises(ValueError, match="Unexpected logical partition tags"):
+        write_checkpoint_block(
+            pa.table({"id": [1, 2], _LOGICAL_PARTITION_COLUMN: tags}), tx.directories, _LOGICAL_PARTITION_COLUMN
+        )
+    assert not list(Path(tx.root).rglob("*.parquet"))
+    tx.abort()
+
+
+def test_checkpoint_rejects_removed_partition_tag(tmp_path):
+    tx = RayCheckpointManager(str(tmp_path)).begin_checkpoint(0, "invalid", [0, 1])
+    with pytest.raises(ValueError, match="removed the internal logical-partition tag"):
+        write_checkpoint_block(pa.table({"id": [1]}), tx.directories, _LOGICAL_PARTITION_COLUMN)
+    tx.abort()
+
+
+@pytest.mark.parametrize("partitioned", [False, True])
+@pytest.mark.parametrize("missing_tag", [False, True])
+def test_zero_row_block_returns_schema_without_files(tmp_path, partitioned, missing_tag):
+    tx = RayCheckpointManager(str(tmp_path)).begin_checkpoint(0, "empty", [0, 1] if partitioned else [None])
+    schema = pa.schema([("id", pa.int64()), ("nullable", pa.string()), ("meta", pa.struct([]))])
+    table = pa.Table.from_batches([], schema=schema)
+    if not missing_tag:
+        table = table.append_column(_LOGICAL_PARTITION_COLUMN, pa.array([], type=pa.int64()))
+    column = _LOGICAL_PARTITION_COLUMN if partitioned else None
+    result_schema, entries = write_checkpoint_block(table, tx.directories, column)
+    assert entries == []
+    expected = schema if partitioned else table.schema
+    assert pa.ipc.read_schema(pa.BufferReader(base64.b64decode(result_schema))).equals(expected)
+    tx.add_result((result_schema, entries))
+    tx.publish()
+    for pid in tx.partition_ids:
+        directory = tmp_path / tx.manager.resolve_checkpoint_filename(0, pid)
+        assert {path.name for path in directory.iterdir()} == {"_checkpoint_v2", "manifest.json"}
+        manifest = _manifest(tx.manager, 0, pid)
+        assert manifest["rows"] == 0
+        assert manifest["files"] == []
+        assert _manifest_schema(manifest).equals(expected)
+
+
+@pytest.mark.parametrize("empty", [False, True])
+def test_sparse_checkpoint_schema_order_and_continuation(ray_runtime, tmp_path, empty):
+    manager = RayCheckpointManager(str(tmp_path))
+    tx = manager.begin_checkpoint(0, "sparse", [0, 1, 2])
+    table = pa.table(
+        {
+            "id": [4, 1, 3, 0, 2],
+            "nullable": pa.array([None, 1, None, 3, 4], type=pa.int64()),
+            "meta": [{}, {}, {}, {}, {}],
+            _LOGICAL_PARTITION_COLUMN: [0, 2, 0, 2, 0],
+        }
+    )
+    if empty:
+        table = table.slice(0, 0)
+    # Include an empty block as well as multiple interleaved partition slices.
+    for block in [table.slice(0, 2), table.slice(0, 0), table.slice(2)]:
+        tx.add_result(write_checkpoint_block(block, tx.directories, _LOGICAL_PARTITION_COLUMN))
+    tx.publish()
+    for pid in range(3):
+        expected = table.filter(pa.compute.equal(table[_LOGICAL_PARTITION_COLUMN], pid)).drop(
+            [_LOGICAL_PARTITION_COLUMN]
+        )
+        manifest = _manifest(manager, 0, pid)
+        assert manager.find_latest_checkpoint(pid)[0] == 0
+        if not expected.num_rows:
+            assert manifest["files"] == []
+            directory = tmp_path / manager.resolve_checkpoint_filename(0, pid)
+            assert {path.name for path in directory.iterdir()} == {"_checkpoint_v2", "manifest.json"}
+        loaded = manager.load_checkpoint(0, partition_id=pid)
+        assert loaded.take_all() == expected.to_pylist()
+        assert loaded.schema().base_schema.equals(expected.schema)
+        direct = RayDataset(ray.data.from_arrow(expected), auto_op_parallelism=False).process([_op(IdentityPipeline)])
+        resumed = RayDataset(loaded, auto_op_parallelism=False).process([_op(IdentityPipeline)])
+        # Compare Arrow rows directly: pandas can turn nullable integers into NaN
+        # differently depending on the physical block/batch boundaries.
+        assert resumed.data.take_all() == direct.data.take_all()
+        direct_schema, resumed_schema = direct.data.schema(), resumed.data.schema()
+        if expected.num_rows:
+            assert resumed_schema.base_schema.equals(direct_schema.base_schema)
+
+
+@pytest.mark.parametrize("delivered_block", [False, True])
+def test_zero_row_global_checkpoint_loads_and_continues(ray_runtime, tmp_path, delivered_block):
+    manager = RayCheckpointManager(str(tmp_path))
+    schema = pa.schema([("id", pa.int64()), ("nullable", pa.string()), ("meta", pa.struct([]))])
+    table = pa.Table.from_batches([], schema=schema)
+    if delivered_block:
+        manager.save_checkpoint(ray.data.from_arrow(table), 0, partition_id=None)
+    else:
+        tx = manager.begin_checkpoint(0, "empty", [None])
+        tx.publish(schema)
+    manifest = _manifest(manager, 0, None)
+    assert manifest["files"] == []
+    assert manifest["rows"] == 0
+    assert _manifest_schema(manifest).equals(schema)
+    assert manager.find_latest_checkpoint(None)[0] == 0
+    loaded = manager.load_checkpoint(0, partition_id=None)
+    assert loaded.take_all() == []
+    assert loaded.schema().base_schema.equals(schema)
+    result = RayDataset(loaded, auto_op_parallelism=False).process([_op()], checkpointer=manager.for_partitions([None]))
+    assert result.to_list() == []
+    assert _manifest(manager, 0, None)["files"] == []
+
+
+@pytest.mark.parametrize("file_format", ["parquet", "arrow"])
+def test_existing_v2_empty_files_remain_readable(ray_runtime, tmp_path, file_format):
+    import pyarrow.parquet as pq
+
+    manager = RayCheckpointManager(str(tmp_path))
+    tx = manager.begin_checkpoint(0, "old_empty", [0])
+    table = pa.Table.from_batches([], schema=pa.schema([("id", pa.int64()), ("nullable", pa.string())]))
+    filename = f"empty.{file_format}"
+    path = os.path.join(tx.directories[0], filename)
+    if file_format == "parquet":
+        pq.write_table(table, path)
+    else:
+        with pa.OSFile(path, "wb") as sink, pa.ipc.new_file(sink, table.schema) as writer:
+            writer.write_table(table)
+    tx.add_result(
+        (
+            base64.b64encode(table.schema.serialize()).decode("ascii"),
+            [(0, {"path": filename, "format": file_format, "rows": 0, "size_bytes": os.path.getsize(path)})],
+        )
+    )
+    tx.publish()
+    assert manager.find_latest_checkpoint()[0] == 0
+    loaded = manager.load_checkpoint(0)
+    assert loaded is not None
+    assert loaded.take_all() == []
+    assert _manifest_schema(_manifest(manager, 0)).equals(table.schema)
+
+
+def test_empty_block_slice_does_not_write_data(tmp_path):
+    manager = RayCheckpointManager(str(tmp_path))
+    tx = manager.begin_checkpoint(0, "slice", [0, 1])
+    table = pa.table({"id": [1, 2], _LOGICAL_PARTITION_COLUMN: [99, 99]})
+    # Tags outside the admitted slice do not belong to this checkpoint block.
+    schema, entries = write_checkpoint_block(table, tx.directories, _LOGICAL_PARTITION_COLUMN, (1, 1))
+    assert entries == []
+    tx.add_result((schema, entries))
+    tx.publish()
+    for pid in range(2):
+        assert _manifest(manager, 0, pid)["files"] == []
+        assert _manifest_schema(_manifest(manager, 0, pid)).equals(pa.schema([("id", pa.int64())]))
 
 
 def test_adapter_contract(monkeypatch):
@@ -301,6 +506,8 @@ def test_execution_group_and_zero_output(ray_runtime, tmp_path, empty):
         for pid in range(2):
             manifest = _manifest(manager, index, pid)
             assert manifest["rows"] == (0 if empty or pid == 1 else 2)
+            if not manifest["rows"]:
+                assert manifest["files"] == []
             loaded = manager.load_checkpoint(index, partition_id=pid)
             assert _LOGICAL_PARTITION_COLUMN not in (loaded.columns() or [])
             assert loaded.count() == manifest["rows"]

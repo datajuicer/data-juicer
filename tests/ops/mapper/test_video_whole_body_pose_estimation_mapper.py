@@ -1,5 +1,7 @@
 import os
+import tempfile
 import unittest
+from unittest import mock
 import numpy as np
 
 from data_juicer.core.data import NestedDataset as Dataset
@@ -92,6 +94,30 @@ class VideoWholeBodyPoseEstimationMapperTest(DataJuicerTestCaseBase):
             self.assertEqual(list(np.array(sample[Fields.meta][MetaKeys.pose_estimation_tags]["hands_keypoints"][2]).shape), target["hands_keypoints_shape"])
             self.assertEqual(len(sample[Fields.meta][MetaKeys.pose_estimation_tags]["bbox_results_list"]), target["bbox_results_list_length"])
             self.assertEqual(list(np.array(sample[Fields.meta][MetaKeys.pose_estimation_tags]["bbox_results_list"][2]).shape), target["bbox_shape"])
+
+    def test_run_without_meta_column(self):
+        # The meta column must be initialized by the op itself, as for other
+        # tagging ops; the model is stubbed since only that path is checked.
+        def fake_dwpose(img):
+            return (np.zeros((1, 18, 2)), np.zeros((1, 6, 2)),
+                    np.zeros((1, 68, 2)), np.zeros((2, 21, 2)),
+                    np.zeros((1, 4)), None)
+
+        with tempfile.TemporaryDirectory() as frame_dir, mock.patch(
+                'data_juicer.ops.mapper.video_whole_body_pose_estimation_mapper.get_model',
+                return_value=fake_dwpose):
+            op = VideoWholeBodyPoseEstimationMapper(
+                frame_num=1,
+                frame_dir=frame_dir,
+                num_proc=1,
+                auto_op_parallelism=False,
+            )
+            dataset = Dataset.from_list([{'videos': [self.vid3_path]}])
+            self.assertNotIn(Fields.meta, dataset.features)
+            res_list = op.run(dataset).to_list()
+
+        tags = res_list[0][Fields.meta][MetaKeys.pose_estimation_tags]
+        self.assertEqual(len(tags['body_keypoints']), 1)
 
 
 if __name__ == '__main__':

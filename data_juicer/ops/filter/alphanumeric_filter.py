@@ -7,6 +7,7 @@ from ..base_op import OPERATORS, Filter
 from ..common import get_words_from_document
 
 OP_NAME = "alphanumeric_filter"
+_ASCII_NON_ALNUM = {codepoint: None for codepoint in range(128) if not chr(codepoint).isalnum()}
 
 
 @OPERATORS.register_module("alphanumeric_filter")
@@ -75,7 +76,10 @@ class AlphanumericFilter(Filter):
             else:
                 if StatsKeys.alnum_ratio in stat:
                     continue
-                alnum_count = sum(1 for char in cur_text if char.isalnum())
+                if type(cur_text) is str and cur_text.isascii():
+                    alnum_count = len(cur_text.translate(_ASCII_NON_ALNUM))
+                else:
+                    alnum_count = sum(1 for char in cur_text if char.isalnum())
                 samples_stats[idx][StatsKeys.alnum_ratio] = (alnum_count / len(cur_text)) if len(cur_text) != 0 else 0.0
 
         return samples

@@ -105,6 +105,21 @@ class AlphanumericFilterTest(DataJuicerTestCaseBase):
         keep_flags = list(op.process_batched(samples))
         self.assertEqual(keep_flags, [True, False, False])
 
+    def test_ascii_and_unicode_ratios_match_character_predicate(self):
+        from data_juicer.utils.constant import Fields, StatsKeys
+
+        ascii_chars = [chr(codepoint) for codepoint in range(128)]
+        texts = ascii_chars + ["".join(ascii_chars), "é文１２Ⅻ²_😊\u0301", ""]
+        samples = {"text": texts, Fields.stats: [{} for _ in texts]}
+        result = AlphanumericFilter().compute_stats_batched(samples)
+        expected = [
+            sum(char.isalnum() for char in text) / len(text) if text else 0.0
+            for text in texts
+        ]
+        self.assertEqual(
+            [stat[StatsKeys.alnum_ratio] for stat in result[Fields.stats]], expected
+        )
+
     def test_compute_stats_batched_skips_existing(self):
         """Already computed stats are not recomputed."""
         from data_juicer.utils.constant import Fields, StatsKeys

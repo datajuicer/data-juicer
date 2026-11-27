@@ -99,21 +99,24 @@ def get_ray_nodes_info(cfg=None):
 
     from ray.util.scheduling_strategies import NodeAffinitySchedulingStrategy
 
-    node_ids = []
+    node_gpu_counts = {}
     futures = []
     for node in nodes:
         if not node["Alive"]:
             continue
         resources = node["Resources"]
-        has_gpu = resources.get("GPU", 0) > 0
-        if not has_gpu and resources.get("CPU", 0) <= 0:
+        gpu_count = resources.get("GPU", 0)
+        if gpu_count <= 0 and resources.get("CPU", 0) <= 0:
             continue
         node_id = node["NodeID"]
         strategy = NodeAffinitySchedulingStrategy(node_id=node_id, soft=False)
-        node_ids.append(node_id)
-        futures.append(collect_node_info.options(num_cpus=0, scheduling_strategy=strategy).remote(has_gpu))
+        node_gpu_counts[node_id] = gpu_count
+        futures.append(collect_node_info.options(num_cpus=0, scheduling_strategy=strategy).remote(gpu_count > 0))
 
-    _RAY_NODES_INFO = dict(zip(node_ids, ray.get(futures)))
+    _RAY_NODES_INFO = {
+        node_id: {**info, "ray_gpu_count": count}
+        for (node_id, count), info in zip(node_gpu_counts.items(), ray.get(futures))
+    }
 
     logger.info(f"Ray cluster info:\n{_RAY_NODES_INFO}")
 
@@ -143,13 +146,19 @@ def ray_available_memories():
     return available_mems
 
 
-def ray_available_gpu_memories():
-    """Available gpu memory of each gpu card for each alive node in MB."""
+def ray_available_gpu_memories(*, require_complete=False):
+    """Return free GPU memory in MB, optionally requiring readings for every Ray GPU on each node."""
     ray_nodes_info = get_ray_nodes_info()
 
     available_gpu_mems = []
-    for nodeid, info in ray_nodes_info.items():
-        available_gpu_mems.extend(info["free_gpus_memory"])
+    for node_id, info in ray_nodes_info.items():
+        readings = info["free_gpus_memory"]
+        if require_complete and len(readings) < info["ray_gpu_count"]:
+            raise RuntimeError(
+                f"Incomplete GPU memory telemetry on Ray node {node_id}. "
+                "Check GPU memory probing or set num_gpus explicitly."
+            )
+        available_gpu_mems.extend(readings)
 
     return available_gpu_mems
 

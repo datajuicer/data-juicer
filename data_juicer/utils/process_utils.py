@@ -276,7 +276,7 @@ def calculate_ray_np(operators):
     total_cpu = ray_cpu_count()
     total_gpu = ray_gpu_count()
     available_mem = sum(ray_available_memories()) * _OPS_MEMORY_LIMIT_FRACTION / 1024  # Convert MB to GB
-    min_gpu_mem = min(ray_available_gpu_memories(), default=0) * _OPS_MEMORY_LIMIT_FRACTION / 1024  # MB to GB
+    min_gpu_mem = None
 
     # Validate cluster resources to prevent divide-by-zero
     if total_cpu == 0:
@@ -337,11 +337,15 @@ def calculate_ray_np(operators):
             # if no cpu is specified, ray will apply for 1 cpu by default
             cpu_required_frac = cpu_req / total_cpu if cpu_req else 1 / total_cpu
             if not gpu_req:
-                if min_gpu_mem <= 0:
-                    raise RuntimeError(
-                        f"Cannot infer num_gpus for Op[{op._name}] without positive GPU memory telemetry. "
-                        "Please verify GPU nodes are properly configured or set num_gpus explicitly."
-                    )
+                if min_gpu_mem is None:
+                    readings = ray_available_gpu_memories(require_complete=True)
+                    min_reading = min(readings, default=0)
+                    if len(readings) < total_gpu or min_reading <= 0:
+                        raise RuntimeError(
+                            f"Cannot infer num_gpus for Op[{op._name}] without complete, positive GPU memory telemetry. "
+                            "Please verify GPU nodes are properly configured or set num_gpus explicitly."
+                        )
+                    min_gpu_mem = min_reading * _OPS_MEMORY_LIMIT_FRACTION / 1024  # MB to GB
                 if mem_req > min_gpu_mem:
                     raise ValueError(
                         f"Cannot infer num_gpus for Op[{op._name}]: it requires {mem_req:g} GB of GPU memory, "

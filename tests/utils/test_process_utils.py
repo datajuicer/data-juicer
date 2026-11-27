@@ -422,6 +422,16 @@ class CalculateRayNPTest(DataJuicerTestCaseBase):
 
         self.assertEqual(op.num_gpus, 0.63)
         self.assertEqual(op.num_proc, 2)
+        self.mock_gpu_mem.assert_called_once_with(require_complete=True)
+
+    def test_auto_gpu_reservation_rejects_partial_memory_telemetry(self):
+        self.mock_gpu.return_value = 2
+        self.mock_gpu_mem.return_value = [8 * 1024]
+        op = self.mock_op(use_cuda=True)
+        op.memory = 5
+
+        with self.assertRaisesRegex(RuntimeError, "set num_gpus explicitly"):
+            calculate_ray_np([op])
 
     def test_explicit_gpu_reservation_works_without_memory_telemetry(self):
         self.mock_gpu.return_value = 2
@@ -435,6 +445,7 @@ class CalculateRayNPTest(DataJuicerTestCaseBase):
 
         self.assertEqual(op.num_gpus, 1)
         self.assertEqual(op.num_proc, 2)
+        self.mock_gpu_mem.assert_not_called()
 
     def test_auto_gpu_reservation_rejects_request_too_large_for_one_card(self):
         self.mock_gpu.return_value = 2

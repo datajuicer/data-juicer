@@ -20,7 +20,10 @@ class RayUtilsTest(DataJuicerTestCaseBase):
         mock_ray.nodes.return_value = nodes
         mock_ray.get.return_value = [{"gpu_count": 1}, {"gpu_count": 0}]
         with patch.object(ray_utils, "ray", mock_ray), patch.object(ray_utils, "_RAY_NODES_INFO", None):
-            self.assertEqual(ray_utils.get_ray_nodes_info(), {gpu_id: {"gpu_count": 1}, cpu_id: {"gpu_count": 0}})
+            self.assertEqual(
+                ray_utils.get_ray_nodes_info(),
+                {gpu_id: {"gpu_count": 1, "ray_gpu_count": 1}, cpu_id: {"gpu_count": 0, "ray_gpu_count": 0}},
+            )
 
         calls = mock_ray.remote.return_value.options.call_args_list
         self.assertEqual([call.kwargs["scheduling_strategy"].node_id for call in calls], [gpu_id, cpu_id])
@@ -28,6 +31,16 @@ class RayUtilsTest(DataJuicerTestCaseBase):
         self.assertTrue(all(call.kwargs["num_cpus"] == 0 for call in calls))
         remote_calls = mock_ray.remote.return_value.options.return_value.remote.call_args_list
         self.assertEqual([call.args for call in remote_calls], [(True,), (False,)])
+
+    def test_complete_gpu_telemetry_is_required_per_node(self):
+        nodes = {
+            "measured": {"ray_gpu_count": 1, "free_gpus_memory": [8192, 24576]},
+            "unmeasured": {"ray_gpu_count": 1, "free_gpus_memory": []},
+        }
+        with patch.object(ray_utils, "get_ray_nodes_info", return_value=nodes):
+            self.assertEqual(ray_utils.ray_available_gpu_memories(), [8192, 24576])
+            with self.assertRaisesRegex(RuntimeError, "unmeasured.*set num_gpus explicitly"):
+                ray_utils.ray_available_gpu_memories(require_complete=True)
 
     def test_initialize_ray_without_cfg_uses_default_address(self):
         mock_ray = MagicMock()

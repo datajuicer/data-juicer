@@ -2,8 +2,7 @@
 # https://github.com/bigscience-workshop/data-preparation
 # --------------------------------------------------------
 
-from collections import defaultdict, deque
-from typing import Dict, Optional, Set
+from typing import Dict, Optional
 
 import numpy as np
 import regex
@@ -170,50 +169,57 @@ class DocumentSimhashDeduplicator(Deduplicator):
         )
         logger.info(f"Querying done, found {len(matches)} matches.")
 
-        # compute hash diff distribution. Use dict adjacency (not sets): a
-        # dict with only atomic keys/values is not tracked by the cyclic GC,
-        # whereas a per-node set is, which shows up as GC overhead on large
-        # match graphs.
-        graph = defaultdict(dict)
-        for x, y in matches:
-            graph[x][y] = graph[y][x] = True
+        # Merge matches directly instead of storing both directions of every
+        # edge in an adjacency graph. Dense duplicate clusters need O(V) extra
+        # clustering state rather than O(V + E), excluding find_all's output.
+        parent = {}
+        sizes = {}
 
-        # clustering with the integer hash values directly
+        def find_root(value):
+            while parent[value] != value:
+                parent[value] = parent[parent[value]]
+                value = parent[value]
+            return value
+
+        for x, y in matches:
+            px = parent.setdefault(x, x)
+            py = parent.setdefault(y, y)
+            # Most edges in a dense cluster join already merged nodes.
+            if px == py:
+                continue
+            if parent[px] != px:
+                px = find_root(px)
+            if parent[py] != py:
+                py = find_root(py)
+            if px == py:
+                continue
+            sx, sy = sizes.get(px, 1), sizes.get(py, 1)
+            if sx < sy:
+                px, py = py, px
+            parent[py] = px
+            sizes[px] = sx + sy
+        del matches, sizes
+
+        # Keep the previous set-pop traversal order for cluster numbering and
+        # show_num sampling; union roots must not determine which traces win.
         unique_hashes = set(simhashes.tolist())
         hash2cluster: Dict[int, int] = {}
-        visited: Set[int] = set()
-        cluster_id: int = 0
-
-        # clustering
-        dup_pairs = {}  # store duplicate pairs when show_num > 0
+        root2cluster = {}
+        dup_pairs = {}
         while unique_hashes:
             hash_val = unique_hashes.pop()
-            if hash_val in visited:
+            if hash_val not in parent:
                 continue
-
-            # if this hash value is not in the matches list, it's regarded as a
-            # single cluster
-            if hash_val not in graph:
-                continue
-
-            # Otherwise, BFS to find the cluster
-            q = deque([hash_val])
-            visited.add(hash_val)
-            hash2cluster[hash_val] = cluster_id
-            if show_num > 0 and len(dup_pairs) < show_num:
-                dup_pairs[cluster_id] = []
-
-            while q:
-                curr = q.popleft()
-                for neighbor in graph[curr]:
-                    if neighbor in visited:
-                        continue
-                    visited.add(neighbor)
-                    q.append(neighbor)
-                    hash2cluster[neighbor] = cluster_id
-
-            cluster_id += 1
-        logger.info(f"Found {cluster_id} clusters and {len(graph)} hashes.")
+            root = parent[hash_val]
+            if parent[root] != root:
+                root = find_root(root)
+            if root not in root2cluster:
+                cluster_id = len(root2cluster)
+                root2cluster[root] = cluster_id
+                if show_num > 0 and len(dup_pairs) < show_num:
+                    dup_pairs[cluster_id] = []
+            hash2cluster[hash_val] = root2cluster[root]
+        logger.info(f"Found {len(root2cluster)} clusters and {len(parent)} hashes.")
 
         # filter duplicated samples
         # NOTICE: For now, we only keep the first sample in a cluster. Maybe

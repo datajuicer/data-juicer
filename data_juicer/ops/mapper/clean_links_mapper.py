@@ -48,9 +48,15 @@ class CleanLinksMapper(Mapper):
             ):
                 self.pattern = pattern[2:-1]
         self.repl = repl
+        self._default_pattern = self.pattern if pattern is None else None
 
     def process_batched(self, samples):
         for idx, text in enumerate(samples[self.text_key]):
+            # Every branch of the default URL prefix requires ':' or '.'.
+            # Avoid a regex scan when neither exists; custom/modified patterns
+            # must still run because they need not have this property.
+            if self.pattern == self._default_pattern and ":" not in text and "." not in text:
+                continue
             if not re.search(self.pattern, text, flags=re.DOTALL):
                 continue
 

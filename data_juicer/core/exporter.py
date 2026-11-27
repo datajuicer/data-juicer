@@ -205,6 +205,13 @@ class Exporter:
         if not columns_to_fix:
             return dataset
 
+        if isinstance(dataset, HFDataset) and dataset.format["type"] is None:
+            # The decoder only examines top-level strings. Arrow structs
+            # already yield dictionaries, even when their children are strings.
+            columns_to_fix = [col for col in columns_to_fix if not isinstance(dataset.features.get(col), dict)]
+            if not columns_to_fix:
+                return dataset
+
         def _parse_if_string(row):
             out = dict(row)
             for col in columns_to_fix:

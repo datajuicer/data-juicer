@@ -15,6 +15,8 @@ OP_NAME = "words_num_filter"
 # the next chunk instead of growing with the whole document.
 _WORD_COUNT_CHUNK_CHARS = 64 * 1024
 _WORD_COUNT_SEPARATOR = re.compile(r"[ \n\t]")
+_ASCII_SPECIAL_CHARACTERS = "".join(sorted(char for char in SPECIAL_CHARACTERS if len(char) == 1 and char.isascii()))
+_ASCII_WORD = re.compile(rf"[^{re.escape(_ASCII_SPECIAL_CHARACTERS)}][^ \n\t]*")
 
 
 def _count_words_streaming(text):
@@ -25,6 +27,11 @@ def _count_words_streaming(text):
     and drops words that become empty.  Chunks are cut on a separator so a word
     is never split across two chunks.
     """
+    if isinstance(text, str) and text.isascii():
+        # A token survives stripping iff it contains a non-special character.
+        # Start at that character and consume the rest of the token in one match.
+        return sum(1 for _ in _ASCII_WORD.finditer(text))
+
     count = 0
     start = 0
     text_len = len(text)

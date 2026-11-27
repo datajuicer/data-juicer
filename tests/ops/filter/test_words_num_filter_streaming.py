@@ -60,6 +60,13 @@ class WordsNumFilterStreamingTest(DataJuicerTestCaseBase):
         expected = [reference_count(text) for text in texts]
         self.assertEqual(got, expected)
 
+    def test_ascii_token_boundaries_match_reference(self):
+        texts = ["!12", "foo\rbar\vqux\fbaz", "\r\v\f", "!" * 100_000]
+        for codepoint in range(128):
+            char = chr(codepoint)
+            texts.extend((char, f"12{char}!!", f"left{char}right"))
+        self.assertEqual(self._run(texts), [reference_count(text) for text in texts])
+
     def test_no_separator_long_text_matches_reference(self):
         texts = ["a" * 200_000, ("a " * 1000) + ("b" * 100_000)]
         got = self._run(texts)
@@ -94,8 +101,8 @@ class WordsNumFilterStreamingTest(DataJuicerTestCaseBase):
         mod._WORD_COUNT_CHUNK_CHARS = 7
         try:
             texts = [
-                "alpha beta gamma delta",
-                "a" * 20 + " b",
+                "alpha beta gamma delta é",
+                "a" * 20 + " bé",
                 "中文" * 20 + " 测试",
                 "one\r\ntwo\tthree four",
                 "x y z",

@@ -151,6 +151,7 @@ class BenchmarkContaminationFilter(Filter):
             return empty
 
         merged = np.concatenate(hashes)
+        del hashes
         if merged.size == 0:
             # every benchmark document is shorter than ngram_size
             logger.warning(
@@ -162,7 +163,12 @@ class BenchmarkContaminationFilter(Filter):
             )
             return empty
 
-        index = np.unique(merged)
+        # The concatenation owns its buffer, so it can be sorted in place.
+        merged.sort()
+        keep = np.empty(merged.size, dtype=np.bool_)
+        keep[0] = True
+        np.not_equal(merged[1:], merged[:-1], out=keep[1:])
+        index = merged[keep]
         logger.info("%s indexed %d distinct %d-grams from %r", OP_NAME, index.size, self.ngram_size, benchmark_path)
         return index
 

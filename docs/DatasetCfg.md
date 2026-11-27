@@ -47,7 +47,7 @@ See [remote_huggingface.yaml](https://github.com/datajuicer/data-juicer-hub/blob
 
 ### S3 dataset
 
-Load a JSON, JSONL, CSV, TSV, text, or Parquet file from Amazon S3 or an S3-compatible object storage service (for example, Backblaze B2, Cloudflare R2, or MinIO). Set `type` to `remote` and `source` to `s3`. The default executor reads through s3fs and the Ray executor reads through PyArrow.
+Load a JSON, JSONL, CSV, text, or Parquet file from Amazon S3 or an S3-compatible object storage service (for example, Backblaze B2, Cloudflare R2, or MinIO). Set `type` to `remote` and `source` to `s3`. The default executor reads through s3fs and the Ray executor reads through PyArrow.
 
 ```yaml
 dataset:
@@ -55,11 +55,11 @@ dataset:
     - type: 'remote'
       source: 's3'
       path: 's3://my-bucket/path/to/dataset.jsonl'
-      aws_region: 'example-region'                                # optional
+      aws_region: 'example-region'                                # optional: used by the Ray executor
       endpoint_url: 'https://s3.example-region.example.com'       # optional: set for S3-compatible storage
 ```
 
-Provide credentials through the `AWS_ACCESS_KEY_ID` and `AWS_SECRET_ACCESS_KEY` environment variables (plus `AWS_SESSION_TOKEN` for temporary credentials), or through `aws_access_key_id` and `aws_secret_access_key` in the dataset config. Environment variables take precedence. To write results back to S3 or S3-compatible storage, see [S3 Export](Export.md#s3-export). To download or upload individual files referenced in samples, use the `s3_download_file_mapper` and `s3_upload_file_mapper` operators, which accept the same `endpoint_url` and `aws_region` options.
+Provide credentials through the `AWS_ACCESS_KEY_ID` and `AWS_SECRET_ACCESS_KEY` environment variables (plus `AWS_SESSION_TOKEN` for temporary credentials), or through `aws_access_key_id` and `aws_secret_access_key` in the dataset config. Environment variables take precedence, including `AWS_REGION` / `AWS_DEFAULT_REGION` over `aws_region`. With the default executor, set the region through `AWS_DEFAULT_REGION`, since it does not use `aws_region`. To write results back to S3 or S3-compatible storage, see [S3 Export](Export.md#s3-export). To download or upload individual files referenced in samples, use the `s3_download_file_mapper` and `s3_upload_file_mapper` operators, which accept the same `endpoint_url` and `aws_region` options.
 
 ### arXiv data
 

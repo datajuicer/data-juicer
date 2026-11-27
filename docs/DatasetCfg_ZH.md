@@ -45,6 +45,22 @@ dataset:
 
 完整示例参见 [remote_huggingface.yaml](https://github.com/datajuicer/data-juicer-hub/blob/main/dataset_config/remote_huggingface.yaml)。
 
+### S3 数据集
+
+从 Amazon S3 或兼容 S3 的对象存储服务（例如 Backblaze B2、Cloudflare R2 或 MinIO）加载 JSON、JSONL、CSV、TSV、文本或 Parquet 文件。将 `type` 设为 `remote`，`source` 设为 `s3`。默认执行器通过 s3fs 读取，Ray 执行器通过 PyArrow 读取。
+
+```yaml
+dataset:
+  configs:
+    - type: 'remote'
+      source: 's3'
+      path: 's3://my-bucket/path/to/dataset.jsonl'
+      aws_region: 'example-region'                                # 可选
+      endpoint_url: 'https://s3.example-region.example.com'       # 可选：使用兼容 S3 的存储时设置
+```
+
+通过环境变量 `AWS_ACCESS_KEY_ID` 和 `AWS_SECRET_ACCESS_KEY`（临时凭证还需 `AWS_SESSION_TOKEN`）提供凭证，或在数据集配置中设置 `aws_access_key_id` 和 `aws_secret_access_key`。环境变量优先。如需将结果写回 S3 或兼容 S3 的存储，参见 [S3 导出](Export_ZH.md#s3-导出)。如需下载或上传样本中引用的单个文件，请使用 `s3_download_file_mapper` 和 `s3_upload_file_mapper` 算子，它们同样支持 `endpoint_url` 和 `aws_region` 选项。
+
 ### arXiv 数据
 
 arXiv 论文请使用[预处理工具](../tools/preprocess/README_ZH.md)下载并将 arXiv tar 包转为 Data-Juicer 可直接处理的 JSONL 格式。

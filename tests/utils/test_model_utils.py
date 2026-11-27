@@ -530,6 +530,21 @@ class ModelUtilsTest(DataJuicerTestCaseBase):
         with self.assertRaises(AssertionError):
             prepare_nltk_model('invalid_lang')
 
+    @patch('data_juicer.utils.model_utils.ensure_nltk_resource', return_value=True)
+    @patch('data_juicer.utils.model_utils.nltk')
+    def test_prepare_nltk_model_downloads_punkt_tab_when_missing(self, mock_nltk, _mock_ensure):
+        # With only the legacy punkt pickle present, loading fails on the missing punkt_tab
+        # resource (#1253); the fallback must download punkt_tab, not only punkt again.
+        mock_model = MagicMock()
+        mock_nltk.data.load.side_effect = [LookupError("Resource 'punkt_tab' not found."), mock_model]
+
+        model = prepare_nltk_model('en')
+
+        self.assertEqual(model, mock_model)
+        downloaded = [c.args[0] for c in mock_nltk.download.call_args_list]
+        self.assertIn('punkt_tab', downloaded)
+        self.assertEqual(mock_nltk.data.load.call_count, 2)
+
     @patch('data_juicer.utils.model_utils.sentencepiece')
     def test_prepare_sentencepiece_model(self, mock_sentencepiece):
         mock_model = MagicMock()

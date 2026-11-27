@@ -1111,13 +1111,18 @@ def prepare_nltk_model(lang, name_pattern="punkt.{}.pickle", **model_params):
         # Load the model
         nltk_model = nltk.data.load(resource_path, **model_params)
     except Exception as e:
-        # Fallback to downloading and retrying
+        # Fallback to downloading and retrying. Since NLTK 3.8.2 the punkt tokenizer loads its
+        # parameters from the "punkt_tab" package, not the legacy "punkt" pickle, and downloading
+        # "punkt" does not always bring "punkt_tab" along, so fetch both.
         logger.warning(f"Error loading model: {e}. Attempting to download...")
         try:
-            nltk.download("punkt", quiet=False)
+            for package in ("punkt_tab", "punkt"):
+                nltk.download(package, quiet=False)
             nltk_model = nltk.data.load(resource_path, **model_params)
         except Exception as download_error:
-            logger.error(f"Failed to load model after download " f"attempt: {download_error}")
+            logger.error(
+                f"Failed to load the nltk punkt model after downloading 'punkt_tab' and 'punkt': {download_error}"
+            )
             raise
 
     return nltk_model

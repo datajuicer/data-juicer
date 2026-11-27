@@ -10,6 +10,15 @@ name: Publish PyPi Package
 
 on:
   workflow_dispatch:
+    inputs:
+      release_tag:
+        description: Existing release tag to build (for example, v1.6.3)
+        type: string
+        required: true
+      publish:
+        description: Upload the verified distributions to PyPI
+        type: boolean
+        default: false
   release:
     types: [published]
 
@@ -19,26 +28,41 @@ permissions:
 jobs:
   deploy:
 
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
+
+    env:
+      RELEASE_TAG: ${{ inputs.release_tag || github.event.release.tag_name }}
 
     steps:
     - uses: actions/checkout@v4
+      with:
+        ref: ${{ format('refs/tags/{0}', env.RELEASE_TAG) }}
+        persist-credentials: false
     - name: Set up Python
       uses: actions/setup-python@v5
       with:
         python-version: '3.10'
-    - name: Install Hatch
-      uses: pypa/hatch@install
+    - name: Install uv
+      uses: astral-sh/setup-uv@v7
+    - name: Install GCC with OpenMP support
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y gcc g++
     - name: Build package
-      run: hatch build
+      env:
+        CC: gcc
+        CXX: g++
+      run: uv build --python "$(command -v python)"
     - name: Install Wheel and Run Tests
       run: |
-        python -m venv venv
-        source venv/bin/activate
-        pip install dist/*.whl
-        python -c "import data_juicer; print(data_juicer.__version__)"
-        dj-process --help
+        smoke_env="$RUNNER_TEMP/dj-wheel-smoke"
+        uv venv --python "$(command -v python)" "$smoke_env"
+        uv pip install --python "$smoke_env/bin/python" dist/*.whl
+        cd "$RUNNER_TEMP"
+        uv run --no-project --python "$smoke_env/bin/python" python -c 'import os, data_juicer; assert data_juicer.__version__ == os.environ["RELEASE_TAG"].removeprefix("v"), data_juicer.__version__'
+        "$smoke_env/bin/dj-process" --help
     - name: Publish package
+      if: github.event_name == 'release' || inputs.publish
       uses: pypa/gh-action-pypi-publish@v1.14.2
       with:
         user: __token__

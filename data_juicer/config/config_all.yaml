@@ -388,6 +388,10 @@ process:
       max_num: null                                           # The max num of returned QA sample for each text. Not limit if it is None.
       output_pattern: null                                    # Regular expression pattern to extract questions and answers from model response.
       enable_vllm: false                                      # Whether to use vllm for inference acceleration.
+      api_model: null                                         # Set an API model name to use API inference.
+      api_endpoint: null                                      # API URL or path. Defaults to /chat/completions.
+      response_path: null                                     # Dot-separated path to text in the API response.
+      system_prompt: null                                     # Optional instructions. API mode uses a QA format prompt by default.
       model_params: {}                                        # Parameters for initializing the model.
       sampling_params: {}                                     # Sampling parameters for text generation. e.g {'temperature': 0.9, 'top_p': 0.95}
       memory: '31GB'                                    # This operation (Op) utilizes deep neural network models that consume a significant amount of memory for computation, hence the system's available memory might constrain the maximum number of processes that can be launched

@@ -185,7 +185,7 @@ def filter_arguments(func, args_dict):
 
 
 class ChatAPIModel:
-    def __init__(self, model=None, endpoint=None, response_path=None, **kwargs):
+    def __init__(self, model=None, endpoint=None, response_path=None, *, raise_on_error=False, **kwargs):
         """
         Initializes an instance of the APIModel class.
 
@@ -201,10 +201,12 @@ class ChatAPIModel:
             extract the desired content from the API response. The default
             value is 'choices.0.message.content', which corresponds to the
             typical structure of an OpenAI API response.
+        :param raise_on_error: Propagate request errors to the caller when True.
         :param kwargs: Additional keyword arguments for configuring the
             internal OpenAI client.
         """
         self.model = model
+        self.raise_on_error = raise_on_error
         self.endpoint = endpoint or "/chat/completions"
         self.response_path = response_path or "choices.0.message.content"
         self.last_response = None  # last chat completion JSON (for usage / debugging)
@@ -248,8 +250,10 @@ class ChatAPIModel:
             self.last_response = result
             return nested_access(result, self.response_path) or ""
         except Exception as e:
-            logger.exception(e)
             self.last_response = None
+            if self.raise_on_error:
+                raise RuntimeError(f"{type(e).__name__}: {e}") from e
+            logger.exception(e)
             return ""
 
 
@@ -303,7 +307,7 @@ class EmbeddingAPIModel:
 
 
 class ResponsesAPIModel:
-    def __init__(self, model=None, endpoint=None, response_path=None, **kwargs):
+    def __init__(self, model=None, endpoint=None, response_path=None, *, raise_on_error=False, **kwargs):
         """
         Initializes an instance specialized for OpenAI Responses API.
 
@@ -312,9 +316,11 @@ class ResponsesAPIModel:
         :param endpoint: API endpoint URL. Defaults to '/responses'.
         :param response_path: Path to extract content from response.
             Defaults to 'output.0.content.0.text'.
+        :param raise_on_error: Propagate request errors to the caller when True.
         :param kwargs: Configuration for the OpenAI client.
         """
         self.model = model
+        self.raise_on_error = raise_on_error
         self.endpoint = endpoint or "/responses"
         self.response_path = response_path or "output.0.content.0.text"
 
@@ -349,6 +355,8 @@ class ResponsesAPIModel:
             result = response.json()
             return nested_access(result, self.response_path) or ""
         except Exception as e:
+            if self.raise_on_error:
+                raise RuntimeError(f"{type(e).__name__}: {e}") from e
             logger.exception(f"Responses API error: {e}")
             return ""
 
@@ -379,7 +387,7 @@ class LiteLLMChatAPIModel:
     is unchanged.
     """
 
-    def __init__(self, model=None, endpoint=None, response_path=None, **kwargs):
+    def __init__(self, model=None, endpoint=None, response_path=None, *, raise_on_error=False, **kwargs):
         """
         :param model: The LiteLLM model string, e.g. ``gpt-4o-mini``,
             ``anthropic/claude-opus-4-8``, ``gemini/gemini-2.5-flash``,
@@ -387,6 +395,7 @@ class LiteLLMChatAPIModel:
         :param endpoint: Kept for interface parity; unused by LiteLLM routing.
         :param response_path: Dot-separated path to the content. Defaults to
             ``choices.0.message.content`` (the OpenAI/LiteLLM response shape).
+        :param raise_on_error: Propagate request errors to the caller when True.
         :param kwargs: Credentials (``api_key``, ``base_url``/``api_base``) and
             default completion params (e.g. ``temperature``).
         """
@@ -396,6 +405,7 @@ class LiteLLMChatAPIModel:
                 "'gpt-4o-mini', 'anthropic/claude-opus-4-8', 'bedrock/...'."
             )
         self.model = model
+        self.raise_on_error = raise_on_error
         self.endpoint = endpoint or "/chat/completions"
         self.response_path = response_path or "choices.0.message.content"
         self.last_response = None  # last completion dump (for usage / debugging)
@@ -424,8 +434,10 @@ class LiteLLMChatAPIModel:
             self.last_response = result
             return nested_access(result, self.response_path) or ""
         except Exception as e:
-            logger.exception(e)
             self.last_response = None
+            if self.raise_on_error:
+                raise RuntimeError(f"{type(e).__name__}: {e}") from e
+            logger.exception(e)
             return ""
 
 
@@ -482,16 +494,18 @@ class LiteLLMResponsesAPIModel:
     existing ``output.0.content.0.text`` extraction is unchanged.
     """
 
-    def __init__(self, model=None, endpoint=None, response_path=None, **kwargs):
+    def __init__(self, model=None, endpoint=None, response_path=None, *, raise_on_error=False, **kwargs):
         """
         :param model: The LiteLLM model string. Required.
         :param endpoint: Kept for interface parity; unused by LiteLLM routing.
         :param response_path: Defaults to ``output.0.content.0.text``.
+        :param raise_on_error: Propagate request errors to the caller when True.
         :param kwargs: Credentials and default params (see the chat model).
         """
         if model is None:
             raise ValueError("`model` is required for the LiteLLM responses backend.")
         self.model = model
+        self.raise_on_error = raise_on_error
         self.endpoint = endpoint or "/responses"
         self.response_path = response_path or "output.0.content.0.text"
         self.last_response = None
@@ -517,8 +531,10 @@ class LiteLLMResponsesAPIModel:
             self.last_response = result
             return nested_access(result, self.response_path) or ""
         except Exception as e:
-            logger.exception(f"LiteLLM responses API error: {e}")
             self.last_response = None
+            if self.raise_on_error:
+                raise RuntimeError(f"{type(e).__name__}: {e}") from e
+            logger.exception(f"LiteLLM responses API error: {e}")
             return ""
 
 

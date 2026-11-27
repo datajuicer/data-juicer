@@ -46,7 +46,7 @@ Data-Juicer 中的算子分为以下 8 种类型。
 | [filter](#filter) | 59 | Filters out low-quality samples. 过滤低质量样本。 |
 | [formatter](#formatter) | 8 | Discovers, loads, and canonicalizes source data. 发现、加载、规范化原始数据。 |
 | [grouper](#grouper) | 3 | Group samples to batched samples. 将样本分组，每一组组成一个批量样本。 |
-| [mapper](#mapper) | 142 | Edits and transforms samples. 对数据样本进行编辑和转换。 |
+| [mapper](#mapper) | 148 | Edits and transforms samples. 对数据样本进行编辑和转换。 |
 | [pipeline](#pipeline) | 3 | Applies dataset-level processing; both input and output are datasets. 执行数据集级别的操作，输入和输出均为完整数据集。 |
 | [selector](#selector) | 6 | Selects top samples based on ranking. 基于排序选取高质量样本。 |
 
@@ -272,6 +272,12 @@ All the specific operators are listed below, each featured with several capabili
 | remove_table_text_mapper | 🔤Text 💻CPU 🟢Stable | Mapper to remove table texts from text samples. 映射器从文本样本中删除表文本。 | [info](operators/mapper/remove_table_text_mapper.md) | - |
 | remove_words_with_incorrect_substrings_mapper | 🔤Text 💻CPU 🟢Stable | Mapper to remove words containing specified incorrect substrings. 映射程序删除包含指定的不正确子字符串的单词。 | [info](operators/mapper/remove_words_with_incorrect_substrings_mapper.md) | - |
 | replace_content_mapper | 🔤Text 💻CPU 🟢Stable | Replaces content in the text that matches a specific regular expression pattern with a designated replacement string. 用指定的替换字符串替换与特定正则表达式模式匹配的文本中的内容。 | [info](operators/mapper/replace_content_mapper.md) | - |
+| robot_depth_estimation_mapper | 🚀GPU 🔴Alpha | Estimate every camera frame and persist aligned depth IR outside Arrow metadata. 估计每个相机帧，并在箭头元数据外保持对齐的深度IR。 | [info](operators/mapper/robot_depth_estimation_mapper.md) | - |
+| robot_destination_grounding_mapper | 💻CPU 🔴Alpha | Select a visible final view and ground the demonstrated target location. 选择可见的最终视图，并将演示的目标位置接地。 | [info](operators/mapper/robot_destination_grounding_mapper.md) | - |
+| robot_gripper_anchor_mapper | 💻CPU 🔴Alpha | Extract an anchor on the gripper-state timeline. 在夹持器状态时间线上提取锚点。 | [info](operators/mapper/robot_gripper_anchor_mapper.md) | - |
+| robot_gripper_tracking_mapper | 🚀GPU 🔴Alpha | Segment the robot gripper and propagate its mask across all frames. 分割机器人抓手并在所有帧上传播其遮罩。 | [info](operators/mapper/robot_gripper_tracking_mapper.md) | - |
+| robot_interaction_geometry_mapper | 💻CPU 🔴Alpha | Compose tracked geometry, state anchors and synchronized views into episode IR. 将跟踪的几何图形，状态锚和同步视图组合到情节IR中。 | [info](operators/mapper/robot_interaction_geometry_mapper.md) | - |
+| robot_object_tracking_mapper | 🚀GPU 🔴Alpha | Localize the instructed object with VLM/SAM3 and track the full episode. 使用VLM/SAM3定位指示的对象，并跟踪整个事件。 | [info](operators/mapper/robot_object_tracking_mapper.md) | - |
 | s3_download_file_mapper | 💻CPU 🟡Beta | Mapper to download files from S3 to local files or load them into memory. Mapper将文件从S3下载到本地文件或将其加载到内存中。 | [info](operators/mapper/s3_download_file_mapper.md) | - |
 | s3_upload_file_mapper | 💻CPU 🟡Beta | Mapper to upload local files to S3 and update paths to S3 URLs. Mapper将本地文件上传到S3并更新S3 url的路径。 | [info](operators/mapper/s3_upload_file_mapper.md) | - |
 | sdxl_prompt2prompt_mapper | 🔤Text 🚀GPU 🟢Stable | Generates pairs of similar images using the SDXL model. 使用SDXL模型生成成对的相似图像。 | [info](operators/mapper/sdxl_prompt2prompt_mapper.md) | - |

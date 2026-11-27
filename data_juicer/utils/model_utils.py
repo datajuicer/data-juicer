@@ -2337,7 +2337,30 @@ def prepare_wav2vec2_age_gender_model(
     return model, processor
 
 
+def prepare_robot_sam3_model(pretrained_model_name_or_path, tracking=False, torch_dtype=None, device="cpu"):
+    """Load the SAM3 image or video model through the shared model cache."""
+    path = check_model_home(str(pretrained_model_name_or_path))
+    model_class = transformers.Sam3TrackerVideoModel if tracking else transformers.Sam3Model
+    processor_class = transformers.Sam3TrackerVideoProcessor if tracking else transformers.Sam3Processor
+    kwargs = {"local_files_only": True}
+    if torch_dtype is not None:
+        kwargs["torch_dtype"] = torch_dtype
+    model = model_class.from_pretrained(path, **kwargs).to(device).eval()
+    processor = processor_class.from_pretrained(path, local_files_only=True)
+    return model, processor
+
+
+def prepare_robot_depth_model(pretrained_model_name_or_path, device="cpu"):
+    """Load the optional Depth Anything 3 SDK model lazily."""
+    from depth_anything_3.api import DepthAnything3
+
+    path = check_model_home(str(pretrained_model_name_or_path))
+    return DepthAnything3.from_pretrained(path).to(device).eval()
+
+
 MODEL_FUNCTION_MAPPING = {
+    "robot_sam3": prepare_robot_sam3_model,
+    "robot_depth": prepare_robot_depth_model,
     "api": prepare_api_model,
     "deepcalib": prepare_deepcalib_model,
     "diffusion": prepare_diffusion_model,
@@ -2426,14 +2449,13 @@ def get_model(model_key=None, rank=None, use_cuda=False):
 
 def free_models(clear_model_zoo=True):
     global MODEL_ZOO
-    for model_key in MODEL_ZOO:
-        try:
-            model = MODEL_ZOO[model_key]
-            model.to("cpu")
-            if clear_model_zoo:
-                del model
-        except Exception:
-            pass
+    for cached in MODEL_ZOO.values():
+        models = cached if isinstance(cached, (tuple, list)) else (cached,)
+        for model in models:
+            try:
+                model.to("cpu")
+            except Exception:
+                pass
     if clear_model_zoo:
         MODEL_ZOO.clear()
     torch.cuda.empty_cache()

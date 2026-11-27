@@ -12,7 +12,7 @@ from types import SimpleNamespace
 import yaml
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
-SCRIPT_PATH = REPO_ROOT / "demos" / "elastic_sharding" / "shard_job.py"
+SCRIPT_PATH = REPO_ROOT / "tools" / "elastic_sharding.py"
 SPEC = importlib.util.spec_from_file_location("elastic_shard_job", SCRIPT_PATH)
 elastic_shard_job = importlib.util.module_from_spec(SPEC)
 sys.modules[SPEC.name] = elastic_shard_job
@@ -120,6 +120,7 @@ def _publish_done_results(job_dir, owners=None):
     manifest = elastic_shard_job._load_manifest(job_dir)
     expected = bytearray()
     for shard_index, shard in enumerate(manifest["shards"]):
+        token = f"manual-{shard_index}"
         source_path = job_dir / shard["path"]
         result_path = job_dir / "attempts" / shard["id"] / "manual" / "processed.jsonl"
         result_path.parent.mkdir(parents=True)
@@ -136,6 +137,17 @@ def _publish_done_results(job_dir, owners=None):
                 "size_bytes": len(payload),
                 "sha256": hashlib.sha256(payload).hexdigest(),
                 "hostname": (owners[shard_index % len(owners)] if owners else "test-node"),
+                "token": token,
+            },
+        )
+        assert elastic_shard_job._write_claim(
+            elastic_shard_job._lock_path(job_dir, shard["id"]),
+            {
+                "shard_id": shard["id"],
+                "token": token,
+                "hostname": (owners[shard_index % len(owners)] if owners else "test-node"),
+                "status": "done",
+                "terminal_path": f"state/done/{shard['id']}.json",
             },
         )
     return bytes(expected)
@@ -145,7 +157,7 @@ def test_prepare_preserves_order_and_normalizes_metadata(tmp_path, monkeypatch):
     job_dir, data_dir, recipe_path = _prepare_job(tmp_path, monkeypatch)
 
     manifest, records = _load_shard_records(job_dir)
-    assert manifest["schema_version"] == 2
+    assert manifest["schema_version"] == 3
     assert manifest["execution"] == {
         "executor_type": "ray",
         "ray_address": "local",
@@ -159,6 +171,10 @@ def test_prepare_preserves_order_and_normalizes_metadata(tmp_path, monkeypatch):
     assert records[0]["images"] == [str((data_dir / "media" / "a.jpg").resolve())]
     assert records[4]["images"] == ["https://example.test/e.jpg"]
     assert sum(shard["rows"] for shard in manifest["shards"]) == 6
+    assert any(
+        "--num-shards no greater than the number of worker nodes" in warning and "one shard per node" in warning
+        for warning in manifest["warnings"]
+    )
 
     # Repeating the exact prepare request is an idempotent no-op.
     assert (
@@ -198,6 +214,16 @@ def test_prepare_preserves_order_and_normalizes_metadata(tmp_path, monkeypatch):
         )
         == 2
     )
+
+
+def test_prepare_prints_shard_count_performance_warning(tmp_path, monkeypatch, capsys):
+    _prepare_job(tmp_path, monkeypatch, num_shards=2)
+
+    warning = capsys.readouterr().err
+    assert "WARNING: elastic sharding is configured with 2 shard(s)" in warning
+    assert "--num-shards no greater than the number of worker nodes" in warning
+    assert "ideally equal: one shard per node" in warning
+    assert "load balancing or finer retry granularity" in warning
 
 
 def test_prepare_rejects_whole_dataset_operator(tmp_path, monkeypatch):
@@ -374,7 +400,9 @@ def test_process_claim_uses_isolated_paths_and_publishes_done(tmp_path, monkeypa
     assert done["ray_address"] == "local"
     assert len(done["ray_output_files"]) == 2
     assert (job_dir / done["output_path"]).read_bytes() == (job_dir / shard["path"]).read_bytes()
-    assert not elastic_shard_job._lock_path(job_dir, shard["id"]).exists()
+    terminal_claim = elastic_shard_job._read_json(elastic_shard_job._lock_path(job_dir, shard["id"]))
+    assert terminal_claim["token"] == claim["token"]
+    assert terminal_claim["status"] == "done"
     assert Path(captured["env"]["HF_HOME"]).is_relative_to(job_dir / "cache")
     assert Path(captured["env"]["XDG_CACHE_HOME"]).is_relative_to(job_dir / "cache")
     assert captured["env"]["PYTHONPATH"].split(os.pathsep)[0] == str(REPO_ROOT)
@@ -384,6 +412,122 @@ def test_process_claim_uses_isolated_paths_and_publishes_done(tmp_path, monkeypa
         manifest,
         SimpleNamespace(ray_address="auto"),
     ) == {"executor_type": "ray", "ray_address": "auto"}
+
+
+def test_terminal_claim_blocks_duplicate_when_terminal_state_looks_absent(tmp_path, monkeypatch):
+    job_dir, _, _ = _prepare_job(tmp_path, monkeypatch, num_shards=1)
+    manifest = elastic_shard_job._load_manifest(job_dir)
+    shard = manifest["shards"][0]
+    claim = elastic_shard_job._create_claim(
+        job_dir,
+        shard,
+        timeout_secs=3600,
+        max_retries=3,
+    )
+    assert claim is not None
+    done_path = elastic_shard_job._done_path(job_dir, shard["id"])
+    lock_path = elastic_shard_job._lock_path(job_dir, shard["id"])
+    owned, published = elastic_shard_job._publish_done_and_seal_claim(
+        job_dir,
+        shard["id"],
+        claim["token"],
+        {
+            "shard_id": shard["id"],
+            "status": "done",
+            "token": claim["token"],
+        },
+    )
+    assert (owned, published) == (True, True)
+
+    # Model a NAS/CPFS client whose metadata cache temporarily reports the
+    # done marker, terminal claim and attempt directory as absent. The server-
+    # side O_EXCL on the retained claim path must still reject a second owner.
+    real_exists = Path.exists
+    hidden_paths = {done_path, lock_path, elastic_shard_job._failed_path(job_dir, shard["id"])}
+    monkeypatch.setattr(
+        Path,
+        "exists",
+        lambda path: False if path in hidden_paths else real_exists(path),
+    )
+    monkeypatch.setattr(elastic_shard_job, "_attempt_directories", lambda *_args: [])
+    assert (
+        elastic_shard_job._create_claim(
+            job_dir,
+            shard,
+            timeout_secs=1,
+            max_retries=3,
+        )
+        is None
+    )
+    assert elastic_shard_job._read_json(lock_path)["status"] == "done"
+
+
+def test_terminal_claim_without_visible_marker_is_committing(tmp_path, monkeypatch):
+    job_dir, _, _ = _prepare_job(tmp_path, monkeypatch, num_shards=1)
+    manifest = elastic_shard_job._load_manifest(job_dir)
+    shard = manifest["shards"][0]
+    claim = elastic_shard_job._create_claim(
+        job_dir,
+        shard,
+        timeout_secs=3600,
+        max_retries=3,
+    )
+    assert claim is not None
+    done_path = elastic_shard_job._done_path(job_dir, shard["id"])
+    owned, published = elastic_shard_job._publish_done_and_seal_claim(
+        job_dir,
+        shard["id"],
+        claim["token"],
+        {
+            "shard_id": shard["id"],
+            "status": "done",
+            "token": claim["token"],
+        },
+    )
+    assert (owned, published) == (True, True)
+
+    hidden_done = done_path.with_suffix(".temporarily-hidden")
+    done_path.rename(hidden_done)
+    try:
+        status = elastic_shard_job._collect_status(job_dir, manifest, timeout_secs=1)
+        assert status["counts"]["committing"] == 1
+        assert not status["complete"]
+        assert (
+            elastic_shard_job._create_claim(
+                job_dir,
+                shard,
+                timeout_secs=1,
+                max_retries=3,
+            )
+            is None
+        )
+    finally:
+        hidden_done.rename(done_path)
+
+
+def test_done_marker_with_running_claim_is_a_conflict(tmp_path, monkeypatch):
+    job_dir, _, _ = _prepare_job(tmp_path, monkeypatch, num_shards=1)
+    manifest = elastic_shard_job._load_manifest(job_dir)
+    shard = manifest["shards"][0]
+    claim = elastic_shard_job._create_claim(
+        job_dir,
+        shard,
+        timeout_secs=3600,
+        max_retries=3,
+    )
+    assert claim is not None
+    elastic_shard_job._atomic_write_json(
+        elastic_shard_job._done_path(job_dir, shard["id"]),
+        {
+            "shard_id": shard["id"],
+            "status": "done",
+            "token": claim["token"],
+        },
+    )
+
+    status = elastic_shard_job._collect_status(job_dir, manifest, timeout_secs=3600)
+    assert status["counts"]["conflict"] == 1
+    assert not status["complete"]
 
 
 def test_expired_attempt_cannot_publish_after_replacement_claims(tmp_path, monkeypatch):
@@ -421,22 +565,23 @@ def test_expired_attempt_cannot_publish_after_replacement_claims(tmp_path, monke
     assert elastic_shard_job._process_claim(job_dir, manifest, shard, old_claim) == "lost"
     assert not elastic_shard_job._done_path(job_dir, shard["id"]).exists()
     assert elastic_shard_job._read_json(lock_path)["token"] == replacement_claim["token"]
-    old_attempt = elastic_shard_job._read_json(
-        job_dir / old_claim["attempt_dir"] / "attempt.json"
-    )
+    old_attempt = elastic_shard_job._read_json(job_dir / old_claim["attempt_dir"] / "attempt.json")
     assert old_attempt["status"] == "stale"
 
-    assert elastic_shard_job._process_claim(
-        job_dir,
-        manifest,
-        shard,
-        replacement_claim,
-    ) == "done"
-    done = elastic_shard_job._read_json(
-        elastic_shard_job._done_path(job_dir, shard["id"])
+    assert (
+        elastic_shard_job._process_claim(
+            job_dir,
+            manifest,
+            shard,
+            replacement_claim,
+        )
+        == "done"
     )
+    done = elastic_shard_job._read_json(elastic_shard_job._done_path(job_dir, shard["id"]))
     assert done["token"] == replacement_claim["token"]
-    assert not lock_path.exists()
+    terminal_claim = elastic_shard_job._read_json(lock_path)
+    assert terminal_claim["token"] == replacement_claim["token"]
+    assert terminal_claim["status"] == "done"
 
 
 def test_max_retries_are_in_addition_to_initial_attempt(tmp_path, monkeypatch):
@@ -465,7 +610,7 @@ def test_max_retries_are_in_addition_to_initial_attempt(tmp_path, monkeypatch):
             last_claim = claim
 
     assert last_claim is not None
-    assert elastic_shard_job._publish_failure_and_release(
+    assert elastic_shard_job._publish_failure_and_seal_claim(
         job_dir,
         shard["id"],
         last_claim["token"],
@@ -487,6 +632,48 @@ def test_max_retries_are_in_addition_to_initial_attempt(tmp_path, monkeypatch):
     )
     failed = elastic_shard_job._read_json(elastic_shard_job._failed_path(job_dir, shard["id"]))
     assert failed["failures"] == 4
+    assert elastic_shard_job._read_json(elastic_shard_job._lock_path(job_dir, shard["id"]))["status"] == "failed"
+
+
+def test_retry_limit_rebuilds_terminal_fence_after_worker_crash(tmp_path, monkeypatch):
+    job_dir, _, _ = _prepare_job(tmp_path, monkeypatch, num_shards=1)
+    manifest = elastic_shard_job._load_manifest(job_dir)
+    shard = manifest["shards"][0]
+    claim = elastic_shard_job._create_claim(
+        job_dir,
+        shard,
+        timeout_secs=3600,
+        max_retries=0,
+    )
+    assert claim is not None
+
+    # Simulate a crash after attempt.json records the failure but before the
+    # normal failure publisher can convert the running claim to a fence.
+    metadata_path = job_dir / claim["attempt_dir"] / "attempt.json"
+    metadata = elastic_shard_job._read_json(metadata_path)
+    metadata["status"] = "failed"
+    elastic_shard_job._atomic_write_json(metadata_path, metadata)
+    assert elastic_shard_job._release_lock(
+        elastic_shard_job._lock_path(job_dir, shard["id"]),
+        claim["token"],
+    )
+
+    assert (
+        elastic_shard_job._create_claim(
+            job_dir,
+            shard,
+            timeout_secs=3600,
+            max_retries=0,
+        )
+        is None
+    )
+    terminal_claim = elastic_shard_job._read_json(elastic_shard_job._lock_path(job_dir, shard["id"]))
+    failed = elastic_shard_job._read_json(elastic_shard_job._failed_path(job_dir, shard["id"]))
+    assert terminal_claim["status"] == "failed"
+    assert failed["token"] == terminal_claim["token"]
+    status = elastic_shard_job._collect_status(job_dir, manifest, timeout_secs=3600)
+    assert status["counts"]["failed"] == 1
+    assert status["counts"]["conflict"] == 0
 
 
 def test_worker_max_shards_propagates_claim_failure(tmp_path, monkeypatch):
@@ -511,6 +698,164 @@ def test_worker_max_shards_propagates_claim_failure(tmp_path, monkeypatch):
     )
 
 
+def _run_command(recipe_path, job_dir, run_id="test-run"):
+    return [
+        "run",
+        "--config",
+        str(recipe_path),
+        "--job-dir",
+        str(job_dir),
+        "--num-shards",
+        "2",
+        "--run-id",
+        run_id,
+        "--wait-timeout-secs",
+        "2",
+        "--wait-poll-interval-secs",
+        "0.001",
+    ]
+
+
+def test_run_falls_back_once_for_non_mapper_filter_recipe(tmp_path, monkeypatch):
+    dataset_path = tmp_path / "input.jsonl"
+    output_path = tmp_path / "output.jsonl"
+    _write_jsonl(dataset_path, [{"text": "one"}, {"text": "two"}])
+    recipe_path = tmp_path / "dedup.yaml"
+    recipe_path.write_text(
+        yaml.safe_dump(
+            {
+                "dataset_path": str(dataset_path),
+                "export_path": str(output_path),
+                "process": [{"document_deduplicator": {}}],
+            }
+        ),
+        encoding="utf-8",
+    )
+    calls = []
+    call_lock = threading.Lock()
+
+    def fake_run(command, **kwargs):
+        with call_lock:
+            calls.append((command, kwargs))
+        time.sleep(0.02)
+        return SimpleNamespace(returncode=0)
+
+    monkeypatch.setattr(elastic_shard_job.subprocess, "run", fake_run)
+    job_dir = tmp_path / "fallback-job"
+    command = _run_command(recipe_path, job_dir)
+    with ThreadPoolExecutor(max_workers=2) as pool:
+        return_codes = list(pool.map(lambda _: elastic_shard_job.main(command), range(2)))
+
+    assert return_codes == [0, 0]
+    assert len(calls) == 1
+    assert calls[0][0][:3] == [sys.executable, "-m", "data_juicer.tools.process_data"]
+    assert not job_dir.exists()
+    coordination_dir = elastic_shard_job._coordination_dir(job_dir, "test-run")
+    assert elastic_shard_job._read_json(coordination_dir / "request.json")["mode"] == "fallback"
+    assert elastic_shard_job._phase_result_code(coordination_dir / "fallback-result.json") == 0
+
+
+def test_fallback_preserves_remote_cli_overrides(tmp_path):
+    command = elastic_shard_job._original_process_command(
+        SimpleNamespace(
+            config=str(tmp_path / "recipe.yaml"),
+            dataset_path="s3://bucket/input.jsonl",
+            output="hdfs://cluster/output.jsonl",
+        )
+    )
+
+    assert command[command.index("--dataset_path") + 1] == "s3://bucket/input.jsonl"
+    assert command[command.index("--export_path") + 1] == "hdfs://cluster/output.jsonl"
+
+
+def test_run_coordinates_prepare_workers_and_merge(tmp_path, monkeypatch):
+    dataset_path = tmp_path / "input.jsonl"
+    output_path = tmp_path / "output.jsonl"
+    _write_jsonl(dataset_path, [{"text": "one"}, {"text": "two"}])
+    recipe_path = tmp_path / "mapper.yaml"
+    recipe_path.write_text(
+        yaml.safe_dump(
+            {
+                "dataset_path": str(dataset_path),
+                "export_path": str(output_path),
+                "executor_type": "ray",
+                "process": [{"whitespace_normalization_mapper": {"text_key": "text"}}],
+            }
+        ),
+        encoding="utf-8",
+    )
+    counters = {"prepare": 0, "worker": 0, "merge": 0}
+    counter_lock = threading.Lock()
+
+    def fake_prepare(args):
+        with counter_lock:
+            counters["prepare"] += 1
+        time.sleep(0.02)
+        return 0
+
+    def fake_worker(args):
+        with counter_lock:
+            counters["worker"] += 1
+        return 0
+
+    def fake_merge(args):
+        with counter_lock:
+            counters["merge"] += 1
+        Path(args.output).write_text('{"text":"done"}\n', encoding="utf-8")
+        return 0
+
+    monkeypatch.setattr(elastic_shard_job, "prepare_job", fake_prepare)
+    monkeypatch.setattr(elastic_shard_job, "worker_job", fake_worker)
+    monkeypatch.setattr(elastic_shard_job, "merge_job", fake_merge)
+    job_dir = tmp_path / "sharded-job"
+    command = _run_command(recipe_path, job_dir)
+    with ThreadPoolExecutor(max_workers=2) as pool:
+        return_codes = list(pool.map(lambda _: elastic_shard_job.main(command), range(2)))
+
+    assert return_codes == [0, 0]
+    assert counters == {"prepare": 1, "worker": 2, "merge": 1}
+    assert output_path.exists()
+    coordination_dir = elastic_shard_job._coordination_dir(job_dir, "test-run")
+    assert elastic_shard_job._read_json(coordination_dir / "request.json")["mode"] == "sharded"
+
+
+def test_run_does_not_fallback_after_worker_failure(tmp_path, monkeypatch):
+    dataset_path = tmp_path / "input.jsonl"
+    output_path = tmp_path / "output.jsonl"
+    _write_jsonl(dataset_path, [{"text": "one"}, {"text": "two"}])
+    recipe_path = tmp_path / "mapper.yaml"
+    recipe_path.write_text(
+        yaml.safe_dump(
+            {
+                "dataset_path": str(dataset_path),
+                "export_path": str(output_path),
+                "process": [{"whitespace_normalization_mapper": {"text_key": "text"}}],
+            }
+        ),
+        encoding="utf-8",
+    )
+    monkeypatch.setattr(elastic_shard_job, "prepare_job", lambda _args: 0)
+    monkeypatch.setattr(elastic_shard_job, "worker_job", lambda _args: 7)
+    monkeypatch.setattr(
+        elastic_shard_job,
+        "merge_job",
+        lambda _args: (_ for _ in ()).throw(AssertionError("merge must not run")),
+    )
+    monkeypatch.setattr(
+        elastic_shard_job.subprocess,
+        "run",
+        lambda *_args, **_kwargs: (_ for _ in ()).throw(AssertionError("fallback must not run")),
+    )
+
+    job_dir = tmp_path / "failed-job"
+    assert elastic_shard_job.main(_run_command(recipe_path, job_dir)) == 7
+    failure = elastic_shard_job._read_json(
+        elastic_shard_job._coordination_dir(job_dir, "test-run") / "run-failure.json"
+    )
+    assert failure["return_code"] == 7
+    assert not output_path.exists()
+
+
 def test_retry_and_ordered_merge(tmp_path, monkeypatch):
     job_dir, _, _ = _prepare_job(tmp_path, monkeypatch, num_shards=2)
     manifest = elastic_shard_job._load_manifest(job_dir)
@@ -518,7 +863,17 @@ def test_retry_and_ordered_merge(tmp_path, monkeypatch):
     failed_path = elastic_shard_job._failed_path(job_dir, failed_shard)
     elastic_shard_job._atomic_write_json(
         failed_path,
-        {"shard_id": failed_shard, "status": "failed"},
+        {"shard_id": failed_shard, "status": "failed", "token": "failed-manual"},
+    )
+    assert elastic_shard_job._write_claim(
+        elastic_shard_job._lock_path(job_dir, failed_shard),
+        {
+            "shard_id": failed_shard,
+            "token": "failed-manual",
+            "hostname": "test-node",
+            "status": "failed",
+            "terminal_path": f"state/failed/{failed_shard}.json",
+        },
     )
     attempt_root = job_dir / "attempts" / failed_shard
     attempt_root.mkdir(parents=True)
@@ -529,6 +884,7 @@ def test_retry_and_ordered_merge(tmp_path, monkeypatch):
     assert not attempt_root.exists()
     assert list((job_dir / "state" / "history" / "failed").glob("*.json"))
     assert list((job_dir / "state" / "history" / "attempts").iterdir())
+    assert list((job_dir / "state" / "history" / "claims").glob("*.json"))
 
     # Merge refuses partial state, then validates and joins results in manifest order.
     output_path = tmp_path / "merged.jsonl"
@@ -854,9 +1210,7 @@ def test_dlc_entrypoint_propagates_worker_failure(tmp_path, monkeypatch):
 
     assert return_codes == [7, 7]
     assert worker_calls == 2
-    abort = elastic_dlc_job._read_json(
-        elastic_dlc_job._coordination_dir(job_dir, run_id) / "abort.json"
-    )
+    abort = elastic_dlc_job._read_json(elastic_dlc_job._coordination_dir(job_dir, run_id) / "abort.json")
     assert abort["return_code"] == 7
 
 

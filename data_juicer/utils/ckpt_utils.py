@@ -401,10 +401,14 @@ class RayCheckpointManager(CheckpointManagerBase):
         :param partition_id: Partition ID
         :return: Tuple of (op_idx, op_name, checkpoint_path) or None if no checkpoint found
         """
+        return next(iter(self.list_checkpoints(partition_id)), None)
+
+    def list_checkpoints(self, partition_id: int) -> List[Tuple[int, str, str]]:
+        """Return this partition's candidate checkpoints, newest boundary first."""
         checkpoint_files = []
 
         if not os.path.exists(self.ckpt_dir):
-            return None
+            return []
 
         for filename in os.listdir(self.ckpt_dir):
             if filename.startswith("checkpoint_op_") and filename.endswith(f"_partition_{partition_id:04d}.parquet"):
@@ -419,12 +423,7 @@ class RayCheckpointManager(CheckpointManagerBase):
                 except (ValueError, IndexError):
                     continue
 
-        if not checkpoint_files:
-            return None
-
-        # Return the latest checkpoint (highest op_idx)
-        latest = max(checkpoint_files, key=lambda x: x[0])
-        return latest
+        return sorted(checkpoint_files, reverse=True)
 
     def group_operations_for_checkpointing(self, ops: List[Any]) -> List[Tuple[int, int, List[Any]]]:
         """

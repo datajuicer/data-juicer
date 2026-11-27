@@ -233,6 +233,10 @@ def _find_optimal_concurrency(resource_ratios, total_resource):
     )
 
 
+class RayActorResourceError(ValueError):
+    """The minimum Ray actor pools exceed available CPU or GPU resources."""
+
+
 def calculate_ray_np(operators):
     """
     Automatically calculates optimal concurrency for Ray Data operator.
@@ -443,7 +447,7 @@ def calculate_ray_np(operators):
             "Please consider configuring the 'num_gpus' of cuda operators to a smaller value or increase the number of GPUs."
         )
     if error_str:
-        raise ValueError(error_str)
+        raise RayActorResourceError(error_str)
 
     if total_required_min_cpu > 1 or total_required_min_gpu > 1:
         # back to batch processing

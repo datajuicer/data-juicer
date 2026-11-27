@@ -14,10 +14,12 @@ class UnionFind:
     def find(self, x):
         # iterative, as parent chains can be longer than the recursion limit
         parent = self.parent
-        if x not in parent:
+        root = parent.get(x)
+        if root is None:
             parent[x] = x
             return x
-        root = x
+        if root == x:
+            return x
         while parent[root] != root:
             root = parent[root]
         # path compression
@@ -30,7 +32,10 @@ class UnionFind:
     def union(self, x, y):
         px = self.find(x)
         py = self.find(y)
-        self.parent[px] = self.parent[py] = min(px, py)
+        if px < py:
+            self.parent[py] = px
+        elif py < px:
+            self.parent[px] = py
 
 
 def strip(document, strip_characters):

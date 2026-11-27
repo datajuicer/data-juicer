@@ -276,7 +276,7 @@ def calculate_ray_np(operators):
     total_cpu = ray_cpu_count()
     total_gpu = ray_gpu_count()
     available_mem = sum(ray_available_memories()) * _OPS_MEMORY_LIMIT_FRACTION / 1024  # Convert MB to GB
-    available_gpu_mem = sum(ray_available_gpu_memories()) * _OPS_MEMORY_LIMIT_FRACTION / 1024  # Convert MB to GB
+    min_gpu_mem = None
 
     # Validate cluster resources to prevent divide-by-zero
     if total_cpu == 0:
@@ -298,7 +298,7 @@ def calculate_ray_np(operators):
         cpu_req = op.num_cpus
         mem_req = op.memory
         gpu_req = 0
-        gpu_mem_req = 0
+        gpu_max_proc = sys.maxsize
 
         if op.num_gpus:
             if not op.use_cuda():
@@ -324,15 +324,8 @@ def calculate_ray_np(operators):
                     "(ray_gpu_count() returned 0). "
                     "Please ensure GPU nodes are configured in the Ray cluster."
                 )
-            if available_gpu_mem == 0:
-                raise RuntimeError(
-                    f"Op[{op._name}] requires GPU but no GPU memory is available. "
-                    "Please verify GPU nodes are properly configured."
-                )
-
             gpu_req = op.num_gpus
-            gpu_mem_req = op.memory
-            if not gpu_req and not gpu_mem_req:
+            if not gpu_req and not mem_req:
                 logger.warning(
                     f"Neither the required cuda memory nor gpu of Op[{op._name}] is specified. "
                     f"We recommend specifying the `memory` field or `num_gpus` field in the "
@@ -343,16 +336,30 @@ def calculate_ray_np(operators):
 
             # if no cpu is specified, ray will apply for 1 cpu by default
             cpu_required_frac = cpu_req / total_cpu if cpu_req else 1 / total_cpu
-            gpu_required_frac = max(
-                gpu_req / total_gpu if gpu_req else 0,
-                gpu_mem_req / available_gpu_mem if gpu_mem_req else 0,
-            )
-
             if not gpu_req:
-                gpu_req = math.ceil(gpu_required_frac * total_gpu * 100) / 100
-                if gpu_req > 1:
-                    # ray requires integer number when GPU resource quantities >1
-                    gpu_req = math.ceil(gpu_req)
+                if min_gpu_mem is None:
+                    readings = ray_available_gpu_memories(require_complete=True)
+                    min_reading = min(readings, default=0)
+                    if len(readings) < total_gpu or min_reading <= 0:
+                        raise RuntimeError(
+                            f"Cannot infer num_gpus for Op[{op._name}] without complete, positive GPU memory telemetry. "
+                            "Please verify GPU nodes are properly configured or set num_gpus explicitly."
+                        )
+                    min_gpu_mem = min_reading * _OPS_MEMORY_LIMIT_FRACTION / 1024  # MB to GB
+                if mem_req > min_gpu_mem:
+                    raise ValueError(
+                        f"Cannot infer num_gpus for Op[{op._name}]: it requires {mem_req:g} GB of GPU memory, "
+                        f"but the smallest Ray GPU has {min_gpu_mem:g} GB free. "
+                        "Use a cluster where each eligible GPU can fit the operator, "
+                        "or set num_gpus explicitly for a known compatible placement."
+                    )
+                # Ray can place the operator on any GPU, so budget for the smallest card.
+                gpu_req = math.ceil(mem_req / min_gpu_mem * 100) / 100
+            gpu_required_frac = gpu_req / total_gpu
+            if 0 < gpu_req < 1:
+                # Ray packs fractional requests on individual GPUs. Free
+                # fractions on separate cards cannot satisfy one reservation.
+                gpu_max_proc = int(total_gpu) * math.floor(1 / gpu_req + 1e-10)
 
         # CPU operator calculations
         else:
@@ -378,7 +385,7 @@ def calculate_ray_np(operators):
             "cpu_required": cpu_req,
             "gpu_required": gpu_req,
             "mem_required": mem_req,
-            "gpu_mem_required": gpu_mem_req,
+            "gpu_max_proc": gpu_max_proc,
             "cpu_required_frac": cpu_required_frac,
             "gpu_required_frac": gpu_required_frac,
             "num_proc": tuple(op.num_proc) if isinstance(op.num_proc, list) else op.num_proc,
@@ -500,7 +507,7 @@ def calculate_ray_np(operators):
 
                 # max_frac_cpu, max_frac_gpu = 1, 1
                 max_frac_cpu, max_frac_gpu = remaining_max_frac_cpu, remaining_max_frac_gpu
-                min_proc = best_combination[op_name]
+                min_proc = min(best_combination[op_name], cfg["gpu_max_proc"])
 
                 if cfg["cpu_required_frac"] and cfg["gpu_required_frac"]:
                     max_proc = min(
@@ -512,6 +519,7 @@ def calculate_ray_np(operators):
                 else:
                     max_proc = int(max(1, max_frac_cpu / cfg["cpu_required_frac"]))
 
+                max_proc = min(max_proc, cfg["gpu_max_proc"])
                 cfg["num_proc"] = min_proc if min_proc >= max_proc else (min_proc, max_proc)
 
     for op_idx, op in enumerate(operators):

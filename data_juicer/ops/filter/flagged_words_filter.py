@@ -79,9 +79,12 @@ class FlaggedWordFilter(Filter):
         self.model_key = None
 
         self.FLAGGED_WORDS = load_words_asset(words_dir=flagged_words_dir, words_type="flagged_words")
-        # Convert lists to sets for O(1) membership lookup performance
+        # Convert lists to lowercase sets for O(1) membership lookup performance.
+        # Words are lower-cased before matching in compute_stats, so the entries
+        # in the word list must be lower-cased as well (some entries in the
+        # original list are capitalized, e.g. in es/tr/zh).
         for key in self.FLAGGED_WORDS:
-            self.FLAGGED_WORDS[key] = set(self.FLAGGED_WORDS[key])
+            self.FLAGGED_WORDS[key] = set(word.lower() for word in self.FLAGGED_WORDS[key])
         if "all" not in self.FLAGGED_WORDS:
             self.FLAGGED_WORDS["all"] = set(val for vals in self.FLAGGED_WORDS.values() for val in vals)
         if tokenization:

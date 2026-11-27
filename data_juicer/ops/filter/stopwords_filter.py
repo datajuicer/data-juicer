@@ -75,9 +75,11 @@ class StopWordsFilter(Filter):
         self.model_key = None
 
         self.STOPWORDS = load_words_asset(words_dir=stopwords_dir, words_type="stopwords")
-        # Convert lists to sets for O(1) membership lookup performance
+        # Convert lists to lowercase sets for O(1) membership lookup performance.
+        # Words are lower-cased before matching in compute_stats, so the entries
+        # in the word list must be lower-cased as well.
         for key in self.STOPWORDS:
-            self.STOPWORDS[key] = set(self.STOPWORDS[key])
+            self.STOPWORDS[key] = set(word.lower() for word in self.STOPWORDS[key])
         if "all" not in self.STOPWORDS:
             self.STOPWORDS["all"] = set(val for vals in self.STOPWORDS.values() for val in vals)
         if tokenization:

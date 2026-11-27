@@ -19,6 +19,18 @@ class CleanCopyrightMapperTest(DataJuicerTestCaseBase):
         for data in dataset:
             self.assertEqual(data['text'], data['target'])
 
+    def test_preserves_exact_line_boundaries(self):
+        cases = [
+            ("\n// header\r\n\n# header\nbody\r\n# keep\n\n", "body\r\n# keep\n\n"),
+            ("\r\n# keep\nbody", "\r\n# keep\nbody"),
+            (" # keep\nbody", " # keep\nbody"),
+            ("\n-- no final newline", ""),
+            ("\n\n", ""),
+            ("# keep\nbody /* non-license comment */\n", "# keep\nbody /* non-license comment */\n"),
+            ("# keep\nbody /* Copyright 2025 */\n", "# keep\nbody \n"),
+        ]
+        self._run_clean_copyright([{"text": text, "target": target} for text, target in cases])
+
     def test_clean_copyright(self):
 
         samples = [{

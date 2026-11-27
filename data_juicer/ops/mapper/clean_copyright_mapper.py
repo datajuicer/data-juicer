@@ -42,21 +42,19 @@ class CleanCopyrightMapper(Mapper):
 
             return sample
 
-        lines = sample.split("\n")
-        skip = 0
-
-        # Greedy replace any file that begins with comment block, most
-        # are copyright headers
-        for k in range(len(lines)):
-            if lines[k].startswith("//") or lines[k].startswith("#") or lines[k].startswith("--") or not lines[k]:
-                skip = skip + 1
+        # Skip leading empty or comment lines without splitting the file body.
+        start = 0
+        while start < len(sample):
+            if sample[start] == "\n":
+                start += 1
+            elif sample.startswith(("//", "#", "--"), start):
+                newline = sample.find("\n", start)
+                if newline == -1:
+                    return ""
+                start = newline + 1
             else:
                 break
-
-        if skip:
-            # we skipped, consume it
-            sample = "\n".join(lines[skip:])
-        return sample
+        return sample[start:]
 
     def process_batched(self, samples):
         samples[self.text_key] = [self._process_single_sample(text) for text in samples[self.text_key]]

@@ -16,6 +16,19 @@ class RangeSpecifiedFieldSelectorTest(DataJuicerTestCaseBase):
         target_list = sorted(target_list, key=lambda x: x['text'])
         self.assertEqual(res_list, target_list)
 
+    def test_reject_invalid_bounds_before_processing(self):
+        invalid_values = {
+            "rank": ("1", "invalid", 0, -1, True, 1.5),
+            "percentile": ("0.5", "invalid", True, -0.1, 1.1, float("nan"), float("inf")),
+        }
+        for bound in ("lower", "upper"):
+            for kind, values in invalid_values.items():
+                key = f"{bound}_{kind}"
+                for value in values:
+                    with self.subTest(key=key, value=value):
+                        with self.assertRaisesRegex(ValueError, key):
+                            RangeSpecifiedFieldSelector(field_key="score", **{key: value})
+
     def test_single_bound_select(self):
         samples = [{"text": str(score), "score": score, "meta": {"quality": score}} for score in (4, 1, 3, 2, 0)]
         dataset = Dataset.from_list(samples)

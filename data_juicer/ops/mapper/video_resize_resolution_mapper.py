@@ -112,6 +112,7 @@ class VideoResizeResolutionMapper(Mapper):
             width = video.codec_context.width
             height = video.codec_context.height
             origin_ratio = width / height
+            audio_stream_count = len(container.streams.audio)
             close_video(container)
 
             if (
@@ -170,9 +171,21 @@ class VideoResizeResolutionMapper(Mapper):
             resized_video_key = transfer_filename(video_key, OP_NAME, self.save_dir, **self._init_parameters)
             if not os.path.exists(resized_video_key) or resized_video_key not in loaded_video_keys:
                 args = ["-nostdin", "-v", "error", "-y"]  # only errors, captured for the message
-                stream = ffmpeg.input(video_key)
-                stream = stream.filter("scale", width=width, height=height)
-                stream = stream.output(resized_video_key).global_args(*args)
+                inp = ffmpeg.input(video_key)
+                video_stream = inp.video.filter("scale", width=width, height=height)
+                # Keep audio streams in the output graph. Filtering only the
+                # video stream and passing that alone to output() drops audio.
+                if audio_stream_count > 0:
+                    audio_streams = [inp[f"a:{i}"] for i in range(audio_stream_count)]
+                    stream = ffmpeg.output(
+                        video_stream,
+                        *audio_streams,
+                        resized_video_key,
+                        acodec="copy",
+                    )
+                else:
+                    stream = ffmpeg.output(video_stream, resized_video_key)
+                stream = stream.global_args(*args)
                 run_ffmpeg(stream, capture_stderr=True)
 
             loaded_video_keys[index] = resized_video_key

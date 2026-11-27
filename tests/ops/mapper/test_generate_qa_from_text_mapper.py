@@ -1,13 +1,16 @@
+import pickle
 import unittest
 from types import SimpleNamespace
-from unittest.mock import Mock, patch
+from unittest.mock import MagicMock, Mock, patch
 
+import httpx
 from loguru import logger
 
 from data_juicer.core.data import NestedDataset as Dataset
 from data_juicer.ops.mapper import generate_qa_from_text_mapper as qa_module
 from data_juicer.ops.mapper.generate_qa_from_text_mapper import \
     GenerateQAFromTextMapper
+from data_juicer.utils import model_utils
 from data_juicer.utils.unittest_utils import DataJuicerTestCaseBase
 
 # @unittest.skip('unknown vllm connection error')
@@ -164,6 +167,7 @@ class GenerateQAFromTextBackendsTest(DataJuicerTestCaseBase):
                 "model": "test-chat",
                 "endpoint": "/chat/custom",
                 "response_path": "data.text",
+                "raise_on_error": True,
             },
         )
         get_model.assert_called_once_with(op.model_key, None, False)
@@ -176,6 +180,31 @@ class GenerateQAFromTextBackendsTest(DataJuicerTestCaseBase):
             ],
             max_tokens=100,
         )
+
+    def test_api_request_failure_reaches_batch_error_handler(self):
+        samples = {"text": ["first document", "second document"]}
+        for skip_op_error in (False, True):
+            with self.subTest(skip_op_error=skip_op_error), patch.object(model_utils, "openai", MagicMock()) as sdk:
+                response = Mock()
+                response.json.return_value = {
+                    "choices": [{"message": {"content": "Human: First? Assistant: One."}}]
+                }
+                post = sdk.OpenAI.return_value.post
+                request = httpx.Request("POST", "http://localhost/v1/chat/completions")
+                failure = httpx.HTTPStatusError(
+                    "HTTP 401 Unauthorized", request=request, response=httpx.Response(401, request=request)
+                )
+                post.side_effect = [response, failure]
+                op = GenerateQAFromTextMapper(api_model="test-chat", skip_op_error=skip_op_error)
+
+                if skip_op_error:
+                    self.assertEqual(op.process(samples)["text"], [])
+                else:
+                    with self.assertRaisesRegex(RuntimeError, "HTTPStatusError: HTTP 401 Unauthorized") as raised:
+                        op.process(samples)
+                    self.assertIs(raised.exception.__cause__, failure)
+                    self.assertEqual(str(pickle.loads(pickle.dumps(raised.exception))), str(raised.exception))
+                self.assertEqual(post.call_count, 2)
 
     def test_local_backend_system_prompt_is_opt_in(self):
         model = Mock(return_value=[{"generated_text": "Human: What? Assistant: This."}])

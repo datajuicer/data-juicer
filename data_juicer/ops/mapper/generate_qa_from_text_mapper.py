@@ -108,6 +108,8 @@ class GenerateQAFromTextMapper(Mapper):
         if api_model is not None:
             if self.system_prompt is None:
                 self.system_prompt = self.DEFAULT_SYSTEM_PROMPT
+            # Let the batch error handler distinguish request errors from empty completions.
+            model_params = {**model_params, "raise_on_error": True}
             self.model_key = prepare_model(
                 model_type="api", model=api_model, endpoint=api_endpoint, response_path=response_path, **model_params
             )

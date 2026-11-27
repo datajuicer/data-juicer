@@ -14,6 +14,20 @@ class CleanIpMapperTest(DataJuicerTestCaseBase):
         for data in dataset:
             self.assertEqual(data['text'], data['target'])
 
+    def test_default_prefilter_preserves_address_and_non_address_text(self):
+        op = CleanIpMapper(repl="[IP]")
+        self._run_clean_ip(op, [
+            {"text": "text. café 版本 1.2 and time 12:30", "target": "text. café 版本 1.2 and time 12:30"},
+            {"text": "text 192.0.2.1", "target": "text [IP]"},
+            {"text": "text ١:٢:٣:٤:٥:٦:٧:٨", "target": "text [IP]"},
+            {"text": "text 2001:db8::", "target": "text [IP]"},
+        ])
+
+    def test_prefilter_does_not_apply_to_custom_patterns(self):
+        for op in (CleanIpMapper(pattern=r"secret[0-9]+"), CleanIpMapper()):
+            op.pattern = r"secret[0-9]+"
+            self._run_clean_ip(op, [{"text": "remove secret42 here", "target": "remove  here"}])
+
     def test_ipv4(self):
 
         samples = [{

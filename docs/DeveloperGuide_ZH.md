@@ -128,6 +128,8 @@ process:
 
 算子的 `text_key` 是单个字段名，例如 `question`。全局配置 `text_keys` 为算子提供默认的 `text_key`。当 `text_keys` 是列表时，Data-Juicer 取列表的第一项作为各算子的默认值。如果 JSONL 输入没有 `text` 列，请将 `text_keys` 设为已有的顶层文本列名。
 
+如果要求 `question` 和 `answer` 两列都存在，且每条样本中的两个值都不能为 `null`，请设置 `text_keys: [question, answer]`。在 standalone 模式加载数据时，Data-Juicer 会检查这两列是否存在，并丢弃任一列的值为 `null` 的样本。默认的 `text_key` 仍是 `question`。
+
 要对 `question` 和 `answer` 分别执行同一种处理，可以在菜谱中配置两次同一个算子，并分别设置 `text_key`。
 
 ```yaml

@@ -129,6 +129,8 @@ process:
 
 An operator's `text_key` is a single field name such as `question`. The global `text_keys` setting supplies the default `text_key`. If `text_keys` is a list, Data-Juicer uses its first item as the default for each operator. For JSONL input without a `text` column, set `text_keys` to an existing top-level text column.
 
+Use `text_keys: [question, answer]` when both columns must be present and non-null. During standalone dataset loading, Data-Juicer checks that both columns exist and drops rows where either value is null. The default `text_key` is still `question`.
+
 To apply the same transformation independently to `question` and `answer`, list the operator twice and set `text_key` on each entry.
 
 ```yaml

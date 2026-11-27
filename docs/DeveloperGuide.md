@@ -3,6 +3,7 @@ EN | [中文](DeveloperGuide_ZH.md)
 
 - [How-to Guide for Developers](#how-to-guide-for-developers)
   - [1. Build Your Own OPs Quickly](#1-build-your-own-ops-quickly)
+    - [1.1 Process Multiple Text Fields](#11-process-multiple-text-fields)
   - [2. Build Your Own Data Recipes and Configs](#2-build-your-own-data-recipes-and-configs)
     - [2.1 Fruitful Config Sources \& Type Hints](#21-fruitful-config-sources--type-hints)
     - [2.2 Hierarchical Configs and Helps](#22-hierarchical-configs-and-helps)
@@ -123,6 +124,59 @@ process:
 
 6. Community contributors can submit corresponding operator PRs and work with the Data-Juicer team to gradually improve it in subsequent PRs. Please see more details [below](#4-contribution-to-the-open-source-community). We greatly welcome co-construction and will [highlight acknowledgements](https://github.com/datajuicer/data-juicer?tab=readme-ov-file#contribution-and-acknowledgements)!
 
+
+### 1.1 Process Multiple Text Fields
+
+An operator's `text_key` is a single field name such as `question`. The global `text_keys` setting supplies the default `text_key`. If `text_keys` is a list, Data-Juicer uses its first item as the default for each operator. For JSONL input without a `text` column, set `text_keys` to an existing top-level text column.
+
+Use `text_keys: [question, answer]` when both columns must be present and non-null. During standalone dataset loading, Data-Juicer checks that both columns exist and drops rows where either value is null. The default `text_key` is still `question`.
+
+To apply the same transformation independently to `question` and `answer`, list the operator twice and set `text_key` on each entry.
+
+```yaml
+text_keys: question
+process:
+  - whitespace_normalization_mapper:
+      text_key: question
+  - whitespace_normalization_mapper:
+      text_key: answer
+```
+
+When an operator needs both fields in the same call, declare an extra field parameter. For example, save this mapper as `combine_qa_mapper.py`. It reads the question through `text_key`, reads the answer through `answer_key`, and writes the combined text to `qa_text`.
+
+```python
+from data_juicer.ops.base_op import OPERATORS, Mapper
+from data_juicer.utils.common_utils import nested_access
+
+
+@OPERATORS.register_module("combine_qa_mapper")
+class CombineQAMapper(Mapper):
+    def __init__(self, answer_key: str = "answer", **kwargs):
+        super().__init__(**kwargs)
+        self.answer_key = answer_key
+
+    def process_single(self, sample):
+        question = sample[self.text_key]
+        answer = nested_access(sample, self.answer_key)
+        if not isinstance(question, str) or not isinstance(answer, str):
+            raise TypeError("The question and answer must both be strings.")
+        sample["qa_text"] = question.strip() + "\n" + answer.strip()
+        return sample
+```
+
+Register the file and set both field names in your recipe.
+
+```yaml
+text_keys: question
+custom_operator_paths:
+  - /path/to/combine_qa_mapper.py
+process:
+  - combine_qa_mapper:
+      text_key: question
+      answer_key: answer
+```
+
+For operators that expect plain text, each selected field must contain a `str` in each sample. To read an answer inside a nested object with this mapper, set `answer_key: qa.reply`. To process a list or dictionary as a whole, use an operator that explicitly supports that type.
 
 ## 2. Build Your Own Data Recipes and Configs
 - We provide easy configuration based on [jsonargparse](https://github.com/omni-us/jsonargparse/) to reduce cost for boilerplate codes.

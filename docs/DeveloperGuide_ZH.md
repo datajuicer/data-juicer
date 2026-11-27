@@ -2,6 +2,7 @@
 
 - [开发者指南](#开发者指南)
   - [1. 快速构建你自己的算子](#1-快速构建你自己的算子)
+    - [1.1 处理多个文本字段](#11-处理多个文本字段)
   - [2. 构建你自己的数据菜谱和配置项](#2-构建你自己的数据菜谱和配置项)
     - [2.1 丰富的配置源和类型提示](#21-丰富的配置源和类型提示)
     - [2.2 层次化的配置和帮助](#22-层次化的配置和帮助)
@@ -122,6 +123,59 @@ process:
 ```
 
 6. 社区贡献者可在alpha状态后就提相应算子PR。此后该贡献者可以与Data-Juicer团队一起在后续PR中，将其渐进完善到beta和stable版本。更多细节请参考下方第4节。我们非常欢迎共建，并会[高亮致谢](https://github.com/datajuicer/data-juicer?tab=readme-ov-file#contribution-and-acknowledgements)！
+
+### 1.1 处理多个文本字段
+
+算子的 `text_key` 是单个字段名，例如 `question`。全局配置 `text_keys` 为算子提供默认的 `text_key`。当 `text_keys` 是列表时，Data-Juicer 取列表的第一项作为各算子的默认值。如果 JSONL 输入没有 `text` 列，请将 `text_keys` 设为已有的顶层文本列名。
+
+如果要求 `question` 和 `answer` 两列都存在，且每条样本中的两个值都不能为 `null`，请设置 `text_keys: [question, answer]`。在 standalone 模式加载数据时，Data-Juicer 会检查这两列是否存在，并丢弃任一列的值为 `null` 的样本。默认的 `text_key` 仍是 `question`。
+
+要对 `question` 和 `answer` 分别执行同一种处理，可以在菜谱中配置两次同一个算子，并分别设置 `text_key`。
+
+```yaml
+text_keys: question
+process:
+  - whitespace_normalization_mapper:
+      text_key: question
+  - whitespace_normalization_mapper:
+      text_key: answer
+```
+
+如果算子需要在一次调用中读取两个字段，可以声明一个额外的字段参数。把下面的 mapper 保存为 `combine_qa_mapper.py`。它通过 `text_key` 读取问题，通过 `answer_key` 读取答案，并将合并后的文本写入 `qa_text`。
+
+```python
+from data_juicer.ops.base_op import OPERATORS, Mapper
+from data_juicer.utils.common_utils import nested_access
+
+
+@OPERATORS.register_module("combine_qa_mapper")
+class CombineQAMapper(Mapper):
+    def __init__(self, answer_key: str = "answer", **kwargs):
+        super().__init__(**kwargs)
+        self.answer_key = answer_key
+
+    def process_single(self, sample):
+        question = sample[self.text_key]
+        answer = nested_access(sample, self.answer_key)
+        if not isinstance(question, str) or not isinstance(answer, str):
+            raise TypeError("The question and answer must both be strings.")
+        sample["qa_text"] = question.strip() + "\n" + answer.strip()
+        return sample
+```
+
+在菜谱中注册该文件并配置两个字段名。
+
+```yaml
+text_keys: question
+custom_operator_paths:
+  - /path/to/combine_qa_mapper.py
+process:
+  - combine_qa_mapper:
+      text_key: question
+      answer_key: answer
+```
+
+对于要求纯文本输入的算子，每条样本中选中的字段值都必须是 `str`。如果要用这个算子读取嵌套对象中的答案，可以设置 `answer_key: qa.reply`。如果要整体处理列表或字典，请使用明确支持该类型的算子。
 
 ## 2. 构建你自己的数据菜谱和配置项
 

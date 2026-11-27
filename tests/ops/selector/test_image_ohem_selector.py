@@ -42,6 +42,43 @@ class ImageOHEMSelectorTest(DataJuicerTestCaseBase):
         ).process(self._dataset())
         self.assertEqual([sample["id"] for sample in result], [4, 3])
 
+    def test_selected_losses_ties_and_existing_stats(self):
+        rows = [{"id": i, "images": [], "__dj__stats__": {"quality": i, "hardness": -99.0}} for i in range(6)]
+        scores = [-3.0, 8.0, 8.0, -1.0, 8.0, 0.0]
+        # A preselected dataset has a different logical row order. Losses and
+        # stable tie-breaking must follow that order, not backing Arrow indices.
+        dataset = Dataset.from_list(rows).select([4, 0, 2, 5, 1, 3])
+        original = dataset.to_list()
+        for topk in (1, 2, 5, 20):
+            with self.subTest(topk=topk):
+                scored = []
+
+                def score_fn(model, samples, images, device):
+                    scored.extend(row["id"] for row in samples)
+                    return [scores[row["id"]] for row in samples]
+
+                result = ImageOHEMSelector(
+                    score_fn=score_fn,
+                    topk=topk,
+                    batch_size=2,
+                    loss_field="hardness",
+                    device="cpu",
+                ).process(dataset)
+                expected = sorted(original, key=lambda row: scores[row["id"]], reverse=True)[:topk]
+                expected = [
+                    dict(
+                        row,
+                        __dj__stats__={
+                            **row["__dj__stats__"],
+                            "hardness": scores[row["id"]],
+                        },
+                    )
+                    for row in expected
+                ]
+                self.assertEqual(result.to_list(), expected)
+                self.assertEqual(scored, [row["id"] for row in original])
+                self.assertEqual(dataset.to_list(), original)
+
     def test_load_functions_from_file(self):
         with tempfile.NamedTemporaryFile(suffix=".py", mode="w+") as score_file:
             score_file.write(

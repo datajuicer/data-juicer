@@ -13,7 +13,7 @@ from functools import partial
 
 import pyarrow as pa
 import ray
-from ray.data._internal.execution.interfaces import RefBundle
+from ray.data._internal.execution.interfaces import ExecutionResources, RefBundle
 from ray.data._internal.execution.interfaces.physical_operator import (
     MetadataOpTask,
     PhysicalOperator,
@@ -31,7 +31,7 @@ from data_juicer.utils.ckpt_utils import write_checkpoint_block
 
 def validate_checkpoint_adapter():
     """Fail before execution when the installed Ray contract is unsupported."""
-    supported = {"2.51.0", "2.56.1"}
+    supported = {"2.51.0", "2.52.0", "2.56.1"}
     required = ("all_inputs_done", "get_active_tasks", "_do_shutdown")
     if (
         ray.__version__ not in supported
@@ -41,7 +41,7 @@ def validate_checkpoint_adapter():
         or "task_done_callback" not in inspect.signature(MetadataOpTask).parameters
     ):
         raise RuntimeError(
-            f"Streaming checkpoints require the Ray 2.51.0/2.56.1 adapter contract; found {ray.__version__}"
+            f"Streaming checkpoints require the Ray 2.51.0/2.52.0/2.56.1 adapter contract; found {ray.__version__}"
         )
 
 
@@ -73,7 +73,19 @@ class Checkpoint(LogicalOperator):
         return {"op_idx": self.op_idx, "op_name": self.op_name, "partition_ids": self.partition_ids}
 
 
-class CheckpointBlockSplitter(OneToOneOperator):
+class _CheckpointPhysicalOperator(OneToOneOperator):
+    def incremental_resource_usage(self):
+        return ExecutionResources.zero()
+
+    def throttling_disabled(self):
+        # Admission is bounded by should_add_input/can_add_input below. Exclude
+        # these CPU/GPU-free nodes from Ray's per-operator reservations, which
+        # can otherwise starve downstream UDFs on Ray 2.52. Ray accounts their
+        # buffered memory against the upstream operator's budget.
+        return True
+
+
+class CheckpointBlockSplitter(_CheckpointPhysicalOperator):
     """Normalize multi-block deliveries before checkpoint admission/backpressure."""
 
     def __init__(self, input_op, data_context):
@@ -118,7 +130,7 @@ class CheckpointBlockSplitter(OneToOneOperator):
         self._bundle = None
 
 
-class StreamingCheckpointOperator(OneToOneOperator):
+class StreamingCheckpointOperator(_CheckpointPhysicalOperator):
     """Write at most two blocks concurrently; forward successful refs in order."""
 
     def __init__(self, logical_op, input_op, data_context):
@@ -237,11 +249,6 @@ class StreamingCheckpointOperator(OneToOneOperator):
     def get_stats(self):
         return {}
 
-    def incremental_resource_usage(self):
-        from ray.data._internal.execution.interfaces import ExecutionResources
-
-        return ExecutionResources.zero()
-
     def implements_accurate_memory_accounting(self):
         return True
 
@@ -292,7 +299,8 @@ def _read_file(path, entry):
     else:
         import pyarrow.parquet as pq
 
-        yield pq.read_table(path)
+        # Preserve the file schema even beneath paths such as split=train.
+        yield pq.read_table(path, partitioning=None)
 
 
 class CheckpointDatasource(Datasource):

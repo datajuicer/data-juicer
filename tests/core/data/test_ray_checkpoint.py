@@ -1,4 +1,4 @@
-"""Streaming checkpoint contracts and recovery integration (Ray 2.51/2.56)."""
+"""Streaming checkpoint contracts and recovery integration (Ray 2.51/2.52/2.56)."""
 
 import json
 import os
@@ -29,7 +29,11 @@ from data_juicer.utils.constant import Fields
 @pytest.fixture(scope="module")
 def ray_runtime():
     ray.init(num_cpus=4, num_gpus=2, include_dashboard=False, object_store_memory=256 * 1024 * 1024)
-    ray.data.DataContext.get_current().enable_progress_bars = False
+    context = ray.data.DataContext.get_current()
+    context.enable_progress_bars = False
+    # Ray 2.52 budgets a new task's outputs using this size before it has a
+    # sample. Keep that estimate within the fixture's small object store.
+    context.target_max_block_size = 8 * 1024 * 1024
     yield
     ray.shutdown()
 
@@ -146,13 +150,14 @@ def test_transaction_ignores_unpublished_and_retry_files(tmp_path):
 
 
 @pytest.mark.parametrize("damage", ["missing_file", "truncated_file", "manifest", "missing_manifest"])
-def test_damaged_manifest_is_never_selected(tmp_path, damage):
+@pytest.mark.parametrize("pid", [0, None])
+def test_damaged_manifest_is_recomputed(tmp_path, damage, pid):
     manager = RayCheckpointManager(str(tmp_path))
-    tx = manager.begin_checkpoint(2, "mapper", [0])
+    tx = manager.begin_checkpoint(2, "mapper", [pid])
     tx.add_result(write_checkpoint_block(pa.table({"id": [1]}), tx.directories))
     tx.publish()
-    path = tmp_path / manager.resolve_checkpoint_filename(2, 0)
-    manifest = _manifest(manager, 2)
+    path = tmp_path / manager.resolve_checkpoint_filename(2, pid)
+    manifest = _manifest(manager, 2, pid)
     if damage == "missing_file":
         (path / manifest["files"][0]["path"]).unlink()
     elif damage == "truncated_file":
@@ -161,8 +166,77 @@ def test_damaged_manifest_is_never_selected(tmp_path, damage):
         (path / "manifest.json").write_text("{broken")
     else:
         (path / "manifest.json").unlink()
-    assert manager.find_latest_checkpoint() is None
-    assert manager.load_checkpoint(2) is None
+    assert manager.find_latest_checkpoint(pid) is None
+    assert manager.load_checkpoint(2, partition_id=pid) is None
+    tx = manager.begin_checkpoint(2, "mapper", [pid])
+    tx.add_result(write_checkpoint_block(pa.table({"id": [1]}), tx.directories))
+    tx.publish()
+    assert manager.find_latest_checkpoint(pid)[0] == 2
+    assert _manifest(manager, 2, pid)["rows"] == 1
+    assert not list(tmp_path.glob(".checkpoint-*"))
+
+
+@pytest.mark.parametrize("legacy", [False, True])
+@pytest.mark.parametrize("has_split", [False, True])
+def test_checkpoint_path_does_not_add_hive_columns(ray_runtime, tmp_path, legacy, has_split):
+    import pyarrow.parquet as pq
+
+    manager = RayCheckpointManager(str(tmp_path / "split=train"))
+    table = pa.table({"id": [7], **({"split": [42]} if has_split else {})})
+    if legacy:
+        path = Path(manager.ckpt_dir, manager.resolve_checkpoint_filename(0, 0))
+        path.mkdir()
+        pq.write_table(table, path / "part.parquet")
+    else:
+        manager.save_checkpoint(ray.data.from_arrow(table), 0)
+    loaded = manager.load_checkpoint(0)
+    assert loaded is not None
+    assert loaded.take_all() == table.to_pylist()
+    assert loaded.schema().base_schema.equals(table.schema)
+
+
+def test_replacement_publication_failure_restores_old_checkpoint(tmp_path, monkeypatch):
+    manager = RayCheckpointManager(str(tmp_path))
+    original = manager.begin_checkpoint(0, "mapper", [0])
+    original.add_result(write_checkpoint_block(pa.table({"id": [1]}), original.directories))
+    original.publish()
+    manifest = _manifest(manager, 0)
+    replacement = manager.begin_checkpoint(0, "mapper", [0])
+    replacement.add_result(write_checkpoint_block(pa.table({"id": [2]}), replacement.directories))
+    rename = os.rename
+
+    def fail_publish(source, destination):
+        if source == replacement.directories[0]:
+            raise OSError("injected publication failure")
+        return rename(source, destination)
+
+    monkeypatch.setattr(os, "rename", fail_publish)
+    with pytest.raises(OSError, match="injected publication failure"):
+        replacement.publish()
+    replacement.abort()
+    assert _manifest(manager, 0) == manifest
+    assert not list(tmp_path.glob(".checkpoint-*"))
+
+
+@pytest.mark.parametrize("pid", [0, None])
+def test_resume_recomputes_damaged_boundary(ray_runtime, tmp_path, pid):
+    manager = RayCheckpointManager(str(tmp_path))
+    executor = _executor(manager)
+    first, second = Counter.remote(), Counter.remote()
+    ops = [_op(counter=first), _op(counter=second)]
+
+    def source():
+        return RayDataset(ray.data.range(4, override_num_blocks=2), auto_op_parallelism=False)
+
+    expected = executor._process_with_checkpointing(source(), pid, ops).to_list()
+    path = tmp_path / manager.resolve_checkpoint_filename(1, pid)
+    (path / _manifest(manager, 1, pid)["files"][0]["path"]).write_bytes(b"bad")
+    assert manager.find_latest_checkpoint(pid)[0] == 0
+    assert executor._process_with_checkpointing(source(), pid, ops).to_list() == expected
+    assert ray.get(first.get.remote()) == 4
+    assert ray.get(second.get.remote()) == 8
+    assert manager.find_latest_checkpoint(pid)[0] == 1
+    assert manager.load_checkpoint(1, partition_id=pid).take_all() == expected
 
 
 def test_exit_before_publication_and_empty_global_scope(tmp_path):

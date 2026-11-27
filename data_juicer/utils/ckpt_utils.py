@@ -424,7 +424,8 @@ class RayCheckpointManager(CheckpointManagerBase):
                     raise ValueError("Checkpoint scope or operator does not match")
                 ray_dataset = read_checkpoint(checkpoint_path, manifest)
             else:
-                ray_dataset = ray.data.read_parquet(checkpoint_path)
+                # Checkpoint paths are storage locations, not Hive partitions.
+                ray_dataset = ray.data.read_parquet(checkpoint_path, partitioning=None)
 
             # Log checkpoint load event if event logger is available
             if self.event_logger and hasattr(self.event_logger, "_log_event"):
@@ -619,13 +620,27 @@ class CheckpointTransaction:
                 os.fsync(stream.fileno())
         for pid, directory in self.directories.items():
             final = os.path.join(self.manager.ckpt_dir, self.manager.resolve_checkpoint_filename(self.op_idx, pid))
-            os.rename(directory, final)
+            # A rejected checkpoint still occupies its published path. Move it
+            # aside only after the replacement is ready; a non-empty directory
+            # cannot be overwritten by rename. Keep it for rollback until the
+            # new directory has been published, then abort() removes the backup.
+            backup = os.path.join(self.root, f"replaced-{pid}")
+            try:
+                os.rename(final, backup)
+            except FileNotFoundError:
+                backup = None
+            try:
+                os.rename(directory, final)
+            except OSError:
+                if backup is not None:
+                    os.rename(backup, final)
+                raise
             self.manager._log_checkpoint_save(final, self.op_idx, self.op_name, pid)
         self.published = True
         self.abort()
 
     def abort(self):
-        """Remove only this transaction's unpublished data, after writers stop."""
+        """Remove staging data and replaced checkpoints, after writers stop."""
         shutil.rmtree(self.root, ignore_errors=True)
 
 

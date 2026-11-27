@@ -1,6 +1,7 @@
 import os
 from typing import List, Optional, Union
 
+import pyarrow as pa
 from datasets import Dataset, DatasetDict, concatenate_datasets, load_dataset
 from jsonargparse import Namespace, dict_to_namespace
 from loguru import logger
@@ -156,7 +157,7 @@ class RemoteFormatter(BaseFormatter):
 
 def add_suffixes(datasets: DatasetDict, num_proc: int = 1) -> Dataset:
     """
-    Add suffix filed to datasets.
+    Add a suffix field to datasets.
 
     :param datasets: a DatasetDict object
     :param num_proc: number of processes to add suffixes
@@ -166,10 +167,16 @@ def add_suffixes(datasets: DatasetDict, num_proc: int = 1) -> Dataset:
     from data_juicer.core.data import add_same_content_to_new_column
 
     for key, ds in datasets.items():
-        if Fields.suffix not in ds.features:
+        if Fields.suffix in ds.features or len(ds) == 0:
+            continue
+        suffix = "." + key
+        if ds._indices is None and ds.format["type"] is None:
+            # Append only the new Arrow column and reuse the source buffers.
+            datasets[key] = ds.add_column(Fields.suffix, pa.repeat(suffix, len(ds)))
+        else:
             datasets[key] = ds.map(
                 add_same_content_to_new_column,
-                fn_kwargs={"new_column_name": Fields.suffix, "initial_value": "." + key},
+                fn_kwargs={"new_column_name": Fields.suffix, "initial_value": suffix},
                 num_proc=num_proc,
                 desc="Adding new column for suffix",
             )

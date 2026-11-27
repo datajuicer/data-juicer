@@ -8,6 +8,19 @@ from ..op_fusion import INTER_LINES
 OP_NAME = "average_line_length_filter"
 
 
+def _count_lines(text):
+    if type(text) is not str or not text.isascii() or any(sep in text for sep in "\v\f\x1c\x1d\x1e"):
+        return len(text.splitlines())
+    if not text:
+        return 0
+
+    count = text.count("\n")
+    if "\r" in text:
+        count += text.count("\r") - text.count("\r\n")
+    # splitlines() omits the empty line after a final separator.
+    return count + (text[-1] not in "\r\n")
+
+
 @OPERATORS.register_module(OP_NAME)
 @INTER_LINES.register_module(OP_NAME)
 class AverageLineLengthFilter(Filter):
@@ -49,13 +62,14 @@ class AverageLineLengthFilter(Filter):
                 continue
 
             cur_text = samples_list[idx]
-            if context and context_key in samples[Fields.context][idx]:
-                lines = samples[Fields.context][idx][context_key]
+            if context:
+                row_context = samples[Fields.context][idx]
+                if context_key not in row_context:
+                    row_context[context_key] = cur_text.splitlines()
+                line_count = len(row_context[context_key])
             else:
-                lines = cur_text.splitlines()
-                if context:
-                    samples[Fields.context][idx][context_key] = lines
-            samples_stats[idx][StatsKeys.avg_line_length] = len(cur_text) / len(lines) if len(lines) != 0 else 0.0
+                line_count = _count_lines(cur_text)
+            stat[StatsKeys.avg_line_length] = len(cur_text) / line_count if line_count else 0.0
         return samples
 
     def process_batched(self, samples):

@@ -17,6 +17,7 @@ Tags 标签: cpu, text
 |--------|------|--------|------|
 | `min_col` | typing.Annotated[int, FieldInfo(annotation=NoneType, required=True, metadata=[Ge(ge=2), Le(le=20)])] | `2` | The min number of columns of table to remove. |
 | `max_col` | typing.Annotated[int, FieldInfo(annotation=NoneType, required=True, metadata=[Ge(ge=2), Le(le=20)])] | `20` | The max number of columns of table to remove. |
+| `remove_boundary_tables` | <class 'bool'> | `False` | Whether to also remove tables at the very start or end of the text. Off by default, because prose lines with the same word count at the text boundary look the same as a table and would be removed too. |
 | `args` |  | `''` | extra args |
 | `kwargs` |  | `''` | extra args |
 

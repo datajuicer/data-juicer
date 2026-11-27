@@ -477,6 +477,7 @@
         <span class="bp">self</span><span class="p">,</span>
         <span class="n">min_col</span><span class="p">:</span> <span class="n">Annotated</span><span class="p">[</span><span class="nb">int</span><span class="p">,</span> <span class="n">Field</span><span class="p">(</span><span class="n">ge</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span> <span class="n">le</span><span class="o">=</span><span class="mi">20</span><span class="p">)]</span> <span class="o">=</span> <span class="mi">2</span><span class="p">,</span>
         <span class="n">max_col</span><span class="p">:</span> <span class="n">Annotated</span><span class="p">[</span><span class="nb">int</span><span class="p">,</span> <span class="n">Field</span><span class="p">(</span><span class="n">ge</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span> <span class="n">le</span><span class="o">=</span><span class="mi">20</span><span class="p">)]</span> <span class="o">=</span> <span class="mi">20</span><span class="p">,</span>
+        <span class="n">remove_boundary_tables</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
         <span class="o">*</span><span class="n">args</span><span class="p">,</span>
         <span class="o">**</span><span class="n">kwargs</span><span class="p">,</span>
     <span class="p">):</span>
@@ -485,13 +486,21 @@
 
 <span class="sd">        :param min_col: The min number of columns of table to remove.</span>
 <span class="sd">        :param max_col: The max number of columns of table to remove.</span>
+<span class="sd">        :param remove_boundary_tables: Whether to also remove tables at the</span>
+<span class="sd">            very start or end of the text. Off by default, because prose</span>
+<span class="sd">            lines with the same word count at the text boundary look the</span>
+<span class="sd">            same as a table and would be removed too.</span>
 <span class="sd">        :param args: extra args</span>
 <span class="sd">        :param kwargs: extra args</span>
 <span class="sd">        """</span>
         <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">min_col</span> <span class="o">=</span> <span class="n">min_col</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">max_col</span> <span class="o">=</span> <span class="n">max_col</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">pattern</span> <span class="o">=</span> <span class="sa">r</span><span class="s2">"(?&lt;=\n)((\S+?)([ |\t](\S+?)){</span><span class="si">%d</span><span class="s2">}\n+){2,}"</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">remove_boundary_tables</span> <span class="o">=</span> <span class="n">remove_boundary_tables</span>
+        <span class="k">if</span> <span class="n">remove_boundary_tables</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">pattern</span> <span class="o">=</span> <span class="sa">r</span><span class="s2">"(?:^|(?&lt;=\n))((\S+?)([ |\t](\S+?)){</span><span class="si">%d</span><span class="s2">}(?:\n+|$)){2,}"</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">pattern</span> <span class="o">=</span> <span class="sa">r</span><span class="s2">"(?&lt;=\n)((\S+?)([ |\t](\S+?)){</span><span class="si">%d</span><span class="s2">}\n+){2,}"</span>
         <span class="c1"># The compiled regexes only depend on the configured column range,</span>
         <span class="c1"># so precompile them once instead of recompiling per sample in the</span>
         <span class="c1"># hot path.</span>

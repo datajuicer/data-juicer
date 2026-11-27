@@ -1,4 +1,5 @@
 import unittest
+from unittest.mock import patch
 
 from data_juicer.core.data import NestedDataset as Dataset
 
@@ -8,6 +9,23 @@ from data_juicer.utils.unittest_utils import DataJuicerTestCaseBase
 
 
 class DocumentDeduplicatorTest(DataJuicerTestCaseBase):
+
+    def test_run_hashes_in_memory_dataset_inline_with_one_worker(self):
+        dataset = Dataset.from_dict({
+            'id': [7, 3, 5, 2, 9, 1],
+            'text': ['gamma', 'alpha', ' gamma ', 'beta', 'alpha', 'beta'],
+        })
+        op = DocumentDeduplicator(accelerator='cpu', auto_op_parallelism=False, num_proc=1)
+        self.assertEqual(dataset.cache_files, [])
+
+        # Observe the map arguments while still executing real hashing and reduction.
+        with patch.object(dataset, 'map', wraps=dataset.map) as hash_map:
+            result = op.run(dataset)
+
+        hash_map.assert_called_once()
+        self.assertIsNone(hash_map.call_args.kwargs['num_proc'])
+        self.assertEqual(list(result['id']), [7, 3, 2])
+        self.assertEqual(list(result['text']), ['gamma', 'alpha', 'beta'])
 
     def _run_doc_dedup(self, dataset: Dataset, target_list, op, show_num=0):
         dataset = dataset.map(op.compute_hash)

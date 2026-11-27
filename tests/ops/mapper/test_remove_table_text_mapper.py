@@ -101,6 +101,35 @@ class RemoveTableTextMapperTest(DataJuicerTestCaseBase):
 
         self._run_remove_header(samples)
 
+    def test_table_at_text_start_case(self):
+        self.op = RemoveTableTextMapper(remove_boundary_tables=True)
+        samples = [{
+            'text': '编号 分行\n① 北京分行\n② 大连分行\nThe end of the table.',
+            'target': 'The end of the table.'
+        }]
+
+        self._run_remove_header(samples)
+
+    def test_table_at_text_end_case(self):
+        self.op = RemoveTableTextMapper(remove_boundary_tables=True)
+        samples = [{
+            'text': 'This is a table:\n编号 分行\n① 北京分行\n② 大连分行',
+            'target': 'This is a table:\n'
+        }]
+
+        self._run_remove_header(samples)
+
+    def test_boundary_prose_kept_by_default_case(self):
+        samples = [{
+            'text': 'Branch directory\n01 Beijing\n02 Dalian\nThe rest of the report.',
+            'target': 'Branch directory\nThe rest of the report.'
+        }, {
+            'text': 'We ship on Friday.\nPlease confirm by noon.',
+            'target': 'We ship on Friday.\nPlease confirm by noon.'
+        }]
+
+        self._run_remove_header(samples)
+
 
 if __name__ == '__main__':
     unittest.main()

@@ -21,6 +21,7 @@ class RemoveTableTextMapper(Mapper):
         self,
         min_col: Annotated[int, Field(ge=2, le=20)] = 2,
         max_col: Annotated[int, Field(ge=2, le=20)] = 20,
+        remove_boundary_tables: bool = False,
         *args,
         **kwargs,
     ):
@@ -29,13 +30,21 @@ class RemoveTableTextMapper(Mapper):
 
         :param min_col: The min number of columns of table to remove.
         :param max_col: The max number of columns of table to remove.
+        :param remove_boundary_tables: Whether to also remove tables at the
+            very start or end of the text. Off by default, because prose
+            lines with the same word count at the text boundary look the
+            same as a table and would be removed too.
         :param args: extra args
         :param kwargs: extra args
         """
         super().__init__(*args, **kwargs)
         self.min_col = min_col
         self.max_col = max_col
-        self.pattern = r"(?<=\n)((\S+?)([ |\t](\S+?)){%d}\n+){2,}"
+        self.remove_boundary_tables = remove_boundary_tables
+        if remove_boundary_tables:
+            self.pattern = r"(?:^|(?<=\n))((\S+?)([ |\t](\S+?)){%d}(?:\n+|$)){2,}"
+        else:
+            self.pattern = r"(?<=\n)((\S+?)([ |\t](\S+?)){%d}\n+){2,}"
         # The compiled regexes only depend on the configured column range,
         # so precompile them once instead of recompiling per sample in the
         # hot path.

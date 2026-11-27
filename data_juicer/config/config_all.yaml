@@ -563,6 +563,7 @@ process:
   - remove_table_text_mapper:                               # remove possible table texts from text.
       min_col: 2                                              # the min num of columns in tables to remove
       max_col: 20                                             # the max num of columns in tables to remove
+      remove_boundary_tables: false                           # whether to also remove tables at the very start or end of the text
   - remove_words_with_incorrect_substrings_mapper:          # remove words with incorrect substrings from text.
       lang: en                                                # sample in which language
       tokenization: false                                     # whether to use model to tokenize documents

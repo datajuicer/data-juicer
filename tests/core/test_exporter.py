@@ -538,6 +538,29 @@ class CoreExporterFileTest(DataJuicerTestCaseBase):
             },
         )
 
+    def test_jsonl_preserves_nested_values_and_dates(self):
+        row = {
+            "text": "café 文档",
+            "meta": {
+                "turns": [{"created": datetime(2024, 1, 2, 3, 4, 5, tzinfo=timezone.utc)}, None],
+                "scores": [0.25, None],
+            },
+            "day": date(2024, 1, 2),
+        }
+        dataset = Dataset.from_list([row])
+        output = os.path.join(self.tmp_dir, "nested.jsonl")
+        self.Exporter.to_jsonl(dataset, output)
+        expected = {
+            "text": "café 文档",
+            "meta": {
+                "turns": [{"created": "2024-01-02T03:04:05+00:00"}, None],
+                "scores": [0.25, None],
+            },
+            "day": "2024-01-02",
+        }
+        with open(output, encoding="utf-8") as f:
+            self.assertEqual(f.read(), json.dumps(expected, ensure_ascii=False) + "\n")
+
     def test_json_jsonl_parquet_exports_and_filtered_shards(self):
         jsonl_path = os.path.join(self.tmp_dir, "out.jsonl")
         json_path = os.path.join(self.tmp_dir, "out.json")

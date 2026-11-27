@@ -1,4 +1,3 @@
-import logging
 import os
 import random
 import time
@@ -13,9 +12,6 @@ from data_juicer.utils.model_utils import get_model, prepare_model
 diffusers = LazyLoader("diffusers")
 torch = LazyLoader("torch")
 p2p_pipeline = LazyLoader("data_juicer.ops.common.prompt2prompt_pipeline", auto_install=False)
-
-logger = logging.getLogger(__name__)
-logging.basicConfig(level=logging.INFO)
 
 OP_NAME = "sdxl_prompt2prompt_mapper"
 
@@ -67,6 +63,9 @@ class SDXLPrompt2PromptMapper(Mapper):
             in the caption pair.
         :param output_dir: the storage location of the generated images.
         """
+        if text_key_second is None:
+            raise ValueError("text_key_second is required for SDXL prompt-to-prompt generation.")
+
         kwargs["memory"] = "38GB" if kwargs.get("memory", 0) == 0 else kwargs["memory"]
         super().__init__(*args, **kwargs)
         self._init_parameters = self.remove_extra_parameters(locals())
@@ -87,13 +86,6 @@ class SDXLPrompt2PromptMapper(Mapper):
             self.text_key = text_key
 
     def process_single(self, sample, rank=None, context=False):
-        if self.text_key_second is None:
-            logger.error(
-                "This OP (sdxl_prompt2prompt_mapper) requires \
-                processing multiple fields, and you need to specify \
-                valid `text_key_second`"
-            )
-
         if not os.path.exists(self.output_dir):
             os.makedirs(self.output_dir, exist_ok=True)
 

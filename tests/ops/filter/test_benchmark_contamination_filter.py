@@ -268,6 +268,38 @@ class BenchmarkContaminationFilterTest(DataJuicerTestCaseBase):
         self.assertEqual(list(scores), sorted(suites))
         self.assertEqual({name for name, score in scores.items() if score["ratio"] == 1.0}, matching)
         self.assertTrue(all(score["ngram_count"] == 0 for name, score in scores.items() if name not in matching))
+        batched = op.compute_stats_batched({"text": [BENCH_EN, "short"], Fields.stats: [{}, {}]})
+        self.assertEqual(batched[Fields.stats][0], row)
+        self.assertTrue(
+            all(
+                score["ngram_count"] == 0
+                for score in batched[Fields.stats][1]["contamination_breakdown"]["suites"].values()
+            )
+        )
+
+    def test_multi_suite_run_batches_in_order_with_cached_and_oversized_rows(self):
+        options = {
+            "benchmark_suites": {"a": self.bench_path, "b": self.bench_path},
+            "auto_op_parallelism": False,
+            "num_proc": None,
+            "batch_size": 8,
+            "threshold": 0.5,
+        }
+        scalar = BenchmarkContaminationFilter(**options, batch_mode=False)
+        batched = BenchmarkContaminationFilter(**options)
+        self.assertTrue(batched.is_batched_op())
+        self.assertFalse(BenchmarkContaminationFilter(**options, skip_op_error=True).is_batched_op())
+        short = BENCH_EN[:44]
+        records = [
+            {"row_id": i, "text": text, Fields.stats: {"other": i}}
+            for i, text in enumerate([short, UNRELATED_EN[:42], short + " extra", BENCH_EN, "a", BENCH_ZH[:45], short])
+        ]
+        scalar.compute_stats_single(records[0])
+        records[2][Fields.stats] = dict(records[0][Fields.stats], other=2)
+        dataset = Dataset.from_list(records)
+        with patch("data_juicer.ops.filter.benchmark_contamination_filter.MAX_BATCH_HASHES", 64):
+            self.assertEqual(batched.run(dataset, reduce=False).to_list(), scalar.run(dataset, reduce=False).to_list())
+        self.assertEqual(batched.run(dataset).to_list(), scalar.run(dataset).to_list())
 
     def test_invalid_suite_settings_fail_early(self):
         for sources in ({}, {"": self.bench_path}, {"broken": ""}):

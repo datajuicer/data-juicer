@@ -16,6 +16,7 @@ logger = logging.getLogger(__name__)
 
 OP_NAME = "benchmark_contamination_filter"
 SUITE_MASK_BITS = 64
+MAX_BATCH_HASHES = 65536
 
 
 @OPERATORS.register_module(OP_NAME)
@@ -107,13 +108,19 @@ class BenchmarkContaminationFilter(Filter):
             scored separately, using the same benchmark_text_key and
             normalization settings. A row is dropped if any suite exceeds
             threshold. The aggregate stats are the maximum ratio and hit
-            count across suites.
+            count across suites. Multi-suite scoring defaults to batched
+            execution when row-level error skipping is disabled. An explicit
+            batch_mode setting overrides this default.
         :param contamination_breakdown_key: stats field for per-suite scores
             and fingerprints of the scoring configuration and normalized
             input text in multi-suite mode.
         :param args: extra args
         :param kwargs: extra args
         """
+        # Keep row-level error skipping when requested. Explicit batch mode still
+        # follows the framework's batch-level fault tolerance.
+        if benchmark_suites is not None and kwargs.get("batch_mode") is None and not kwargs.get("skip_op_error"):
+            kwargs["batch_mode"] = True
         super().__init__(*args, **kwargs)
         if tokenization not in ("char", "word"):
             raise ValueError(f'tokenization must be "char" or "word", got {tokenization!r}')
@@ -349,13 +356,17 @@ class BenchmarkContaminationFilter(Filter):
         return int.from_bytes(digest, byteorder="big", signed=False)
 
     @staticmethod
-    def _matched_positions(index, hashes):
-        if index.size == 0 or hashes.size == 0:
-            return np.empty(0, dtype=np.intp)
+    def _lookup_hashes(index, hashes):
         # binary search over the sorted index, O(k log N)
         positions = np.searchsorted(index, hashes)
         positions = np.clip(positions, 0, index.size - 1)
-        return positions[index[positions] == hashes]
+        return positions, index[positions] == hashes
+
+    def _matched_positions(self, index, hashes):
+        if index.size == 0 or hashes.size == 0:
+            return np.empty(0, dtype=np.intp)
+        positions, found = self._lookup_hashes(index, hashes)
+        return positions[found]
 
     def _count_hits(self, hashes):
         return self._matched_positions(self._index, hashes).size
@@ -370,38 +381,97 @@ class BenchmarkContaminationFilter(Filter):
             for bit, name in enumerate(names):
                 yield name, np.count_nonzero(masks & membership.dtype.type(1 << bit))
 
-    def _compute_suite_stats(self, sample):
-        stats = sample[Fields.stats]
-        text = self._normalize(sample.get(self.text_key))
-        text_signature = hashlib.sha256(text.encode("utf-8")).hexdigest()
+    def _suite_stats_current(self, stats, text_signature):
         breakdown = stats.get(self.contamination_breakdown_key)
-        if (
+        return (
             isinstance(breakdown, dict)
             and breakdown.get("signature") == self._suite_signature
             and breakdown.get("text_signature") == text_signature
             and self.contamination_ratio_key in stats
             and self.contamination_ngram_count_key in stats
-        ):
-            return sample
+        )
 
-        hashes = np.unique(self._ngram_hashes(text))
+    def _set_suite_stats(self, stats, text_signature, size, counts):
         suite_scores = {}
         max_hits = 0
-        for name, hits in self._count_suite_hits(hashes):
-            suite_scores[name] = {"ngram_count": hits, "ratio": hits / hashes.size if hashes.size else 0.0}
+        for name, hits in counts:
+            hits = int(hits)
+            suite_scores[name] = {"ngram_count": hits, "ratio": hits / size if size else 0.0}
             max_hits = max(max_hits, hits)
-        stats[self.contamination_ratio_key] = max_hits / hashes.size if hashes.size else 0.0
+        stats[self.contamination_ratio_key] = max_hits / size if size else 0.0
         stats[self.contamination_ngram_count_key] = max_hits
         stats[self.contamination_breakdown_key] = {
             "signature": self._suite_signature,
             "text_signature": text_signature,
             "suites": suite_scores,
         }
+
+    def _compute_suite_stats(self, sample):
+        stats = sample[Fields.stats]
+        text = self._normalize(sample.get(self.text_key))
+        signature = hashlib.sha256(text.encode("utf-8")).hexdigest()
+        if not self._suite_stats_current(stats, signature):
+            hashes = np.unique(self._ngram_hashes(text))
+            self._set_suite_stats(stats, signature, hashes.size, self._count_suite_hits(hashes))
         return sample
+
+    def _score_hash_batch(self, rows):
+        # Each row has its own distinct hashes. A hash shared across rows needs
+        # just one search per index block, then contributes to each original row.
+        lengths = [hashes.size for _, _, hashes in rows]
+        starts = np.cumsum([0, *lengths[:-1]], dtype=np.intp)
+        unique, inverse = np.unique(np.concatenate([row[2] for row in rows]), return_inverse=True)
+        suite_counts = {}
+        for names, index, membership in self._suite_blocks:
+            if not index.size:
+                suite_counts.update({name: np.zeros(len(rows), dtype=np.intp) for name in names})
+                continue
+            positions, found = self._lookup_hashes(index, unique)
+            if membership is None:
+                suite_counts[names[0]] = np.add.reduceat(found[inverse], starts, dtype=np.intp)
+                continue
+            masks = np.zeros(unique.size, dtype=membership.dtype)
+            masks[found] = membership[positions[found]]
+            row_masks = masks[inverse]
+            for bit, name in enumerate(names):
+                hits = (row_masks & membership.dtype.type(1 << bit)) != 0
+                suite_counts[name] = np.add.reduceat(hits, starts, dtype=np.intp)
+
+        for position, (stats, signature, hashes) in enumerate(rows):
+            counts = ((name, hits[position]) for name, hits in suite_counts.items())
+            self._set_suite_stats(stats, signature, hashes.size, counts)
 
     # ---------------------------------------------------------------- #
     # operator interface
     # ---------------------------------------------------------------- #
+    def compute_stats_batched(self, samples, context=False):
+        if self._suite_blocks is None:
+            return super().compute_stats_batched(samples, context=context)
+        stats_column = samples[Fields.stats]
+        texts = samples.get(self.text_key)
+        if texts is None:
+            texts = [None] * len(stats_column)
+        pending = []
+        size = 0
+        for text, stats in zip(texts, stats_column, strict=True):
+            text = self._normalize(text)
+            signature = hashlib.sha256(text.encode("utf-8")).hexdigest()
+            if self._suite_stats_current(stats, signature):
+                continue
+            hashes = np.unique(self._ngram_hashes(text))
+            if not hashes.size or hashes.size > MAX_BATCH_HASHES:
+                self._set_suite_stats(stats, signature, hashes.size, self._count_suite_hits(hashes))
+                continue
+            if size + hashes.size > MAX_BATCH_HASHES:
+                self._score_hash_batch(pending)
+                pending = []
+                size = 0
+            pending.append((stats, signature, hashes))
+            size += hashes.size
+        if pending:
+            self._score_hash_batch(pending)
+        return samples
+
     def compute_stats_single(self, sample, context=False):
         if self._suite_blocks is not None:
             return self._compute_suite_stats(sample)

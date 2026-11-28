@@ -932,6 +932,7 @@ process:
       contamination_ratio_key: "contamination_ratio"         # stats field holding the overlap ratio; give each benchmark
                                                                # its own name when several contamination filters share a recipe
       contamination_ngram_count_key: "contamination_ngram_count"   # stats field holding the matching n-gram count
+      index_cache_dir: null                                    # optional local directory for reusable benchmark indexes
   - character_repetition_filter:                            # filter text with the character repetition ratio out of specific range
       rep_len: 10                                             # repetition length for char-level n-gram
       min_ratio: 0.0                                          # the min ratio of filter range

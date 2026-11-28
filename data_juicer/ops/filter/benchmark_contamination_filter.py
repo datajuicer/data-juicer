@@ -1,10 +1,13 @@
 import gzip
 import hashlib
+import io
 import json
 import logging
 import os
 import re
+import tempfile
 import unicodedata
+from pathlib import Path
 
 import numpy as np
 
@@ -15,6 +18,8 @@ from ..base_op import OPERATORS, Filter
 logger = logging.getLogger(__name__)
 
 OP_NAME = "benchmark_contamination_filter"
+INDEX_CACHE_VERSION = 1
+INDEX_DTYPE = np.dtype("<u8")
 
 
 @OPERATORS.register_module(OP_NAME)
@@ -50,6 +55,7 @@ class BenchmarkContaminationFilter(Filter):
         contamination_ratio_key: str = StatsKeys.contamination_ratio,
         contamination_ngram_count_key: str = StatsKeys.contamination_ngram_count,
         *args,
+        index_cache_dir: str = None,
         **kwargs,
     ):
         """
@@ -99,6 +105,10 @@ class BenchmarkContaminationFilter(Filter):
             sample contaminated against its benchmark.
         :param contamination_ngram_count_key: the stats field that
             stores the number of matching n-grams.
+        :param index_cache_dir: optional local directory for reusing reference
+            indexes across runs. Entries are keyed by reference content and
+            indexing settings. Set to None to disable the cache. Entries can
+            be removed between runs to reclaim disk space.
         :param args: extra args
         :param kwargs: extra args
         """
@@ -119,6 +129,7 @@ class BenchmarkContaminationFilter(Filter):
         self.threshold = threshold
         self.contamination_ratio_key = contamination_ratio_key
         self.contamination_ngram_count_key = contamination_ngram_count_key
+        self.index_cache_dir = Path(index_cache_dir) if index_cache_dir else None
 
         self._index = self._build_index(benchmark_path)
 
@@ -139,16 +150,107 @@ class BenchmarkContaminationFilter(Filter):
         if not os.path.exists(benchmark_path):
             raise ValueError(f"benchmark file {benchmark_path!r} does not exist")
 
-        hashes = []
-        for raw_text in self._iter_benchmark_texts(benchmark_path):
-            text = self._normalize(raw_text)
-            hashes.append(self._ngram_hashes(text))
+        lower_path = str(benchmark_path).lower()
+        compressed = lower_path.endswith(".gz")
+        plain_path = lower_path.removesuffix(".gz")
+        suffix = next((ext for ext in (".jsonl", ".json", ".txt") if plain_path.endswith(ext)), None)
+        if suffix is None:
+            raise ValueError(
+                f"unsupported benchmark file format: {benchmark_path!r}. Supported "
+                "formats are .jsonl, .json and .txt, optionally gzipped."
+            )
+
+        # Hash then parse the same open file even if its path is replaced.
+        with open(benchmark_path, "rb") as source:
+            cache_path = None
+            if self.index_cache_dir is not None:
+                original = os.fstat(source.fileno())
+                cache_path = self._index_cache_path(source, suffix, compressed)
+                cached = self._read_cached_index(cache_path)
+                if cached is not None:
+                    self._check_reference_version(source, original, benchmark_path)
+                    return cached
+                source.seek(0)
+
+            reader = gzip.GzipFile(fileobj=source) if compressed else source
+            with io.TextIOWrapper(reader, encoding="utf-8") as text_stream:
+                index = self._index_texts(text_stream, suffix, benchmark_path)
+                if cache_path is not None:
+                    self._check_reference_version(source, original, benchmark_path)
+                    self._write_cached_index(cache_path, index)
+            return index
+
+    def _index_cache_path(self, source, suffix, compressed):
+        settings = [
+            INDEX_CACHE_VERSION,
+            unicodedata.unidata_version,
+            suffix,
+            compressed,
+            self.benchmark_text_key,
+            self.ngram_size,
+            self.tokenization,
+            self.lowercase,
+            self.normalize_whitespace,
+        ]
+        digest = hashlib.sha256(json.dumps(settings).encode("utf-8"))
+        for block in iter(lambda: source.read(1024 * 1024), b""):
+            digest.update(block)
+        return self.index_cache_dir / f"benchmark-ngram-{digest.hexdigest()}.bin"
+
+    @staticmethod
+    def _check_reference_version(source, original, benchmark_path):
+        current = os.fstat(source.fileno())
+        if (current.st_size, current.st_mtime_ns) != (original.st_size, original.st_mtime_ns):
+            raise ValueError(f"benchmark file {benchmark_path!r} changed while being read")
+
+    @staticmethod
+    def _read_cached_index(path):
+        try:
+            entry = path.read_bytes()
+        except FileNotFoundError:
+            return None
+        except OSError as exc:
+            logger.warning("could not read benchmark index cache %s: %s", path, exc)
+            return None
+
+        checksum_length = hashlib.sha256().digest_size
+        payload = memoryview(entry)[checksum_length:]
+        checksum = hashlib.sha256(path.name.encode("ascii"))
+        checksum.update(payload)
+        if len(payload) % INDEX_DTYPE.itemsize or entry[:checksum_length] != checksum.digest():
+            logger.warning("rebuilding invalid benchmark index cache %s", path)
+            return None
+        return np.frombuffer(payload, dtype=INDEX_DTYPE)
+
+    @staticmethod
+    def _write_cached_index(path, index):
+        payload = index.astype(INDEX_DTYPE, copy=False)
+        checksum = hashlib.sha256(path.name.encode("ascii"))
+        checksum.update(payload)
+        temp_path = None
+        try:
+            path.parent.mkdir(parents=True, exist_ok=True)
+            with tempfile.NamedTemporaryFile(dir=path.parent, suffix=".tmp", delete=False) as stream:
+                temp_path = Path(stream.name)
+                stream.write(checksum.digest())
+                stream.write(payload)
+            os.replace(temp_path, path)
+        except OSError as exc:
+            logger.warning("could not write benchmark index cache %s: %s", path, exc)
+            if temp_path is not None:
+                try:
+                    temp_path.unlink(missing_ok=True)
+                except OSError as cleanup_error:
+                    logger.warning("could not remove temporary benchmark index %s: %s", temp_path, cleanup_error)
+
+    def _index_texts(self, source, suffix, benchmark_path):
+        hashes = [self._ngram_hashes(self._normalize(text)) for text in self._iter_benchmark_texts(source, suffix)]
 
         if not hashes:
             logger.warning(
                 "benchmark file %r contains no usable text, %s " "will keep every sample.", benchmark_path, OP_NAME
             )
-            return empty
+            return np.empty(0, dtype=np.uint64)
 
         merged = np.concatenate(hashes)
         if merged.size == 0:
@@ -160,63 +262,48 @@ class BenchmarkContaminationFilter(Filter):
                 benchmark_path,
                 OP_NAME,
             )
-            return empty
+            return np.empty(0, dtype=np.uint64)
 
         index = np.unique(merged)
         logger.info("%s indexed %d distinct %d-grams from %r", OP_NAME, index.size, self.ngram_size, benchmark_path)
         return index
 
-    def _iter_benchmark_texts(self, path):
+    def _iter_benchmark_texts(self, source, suffix):
         """Yield the raw text of every benchmark record."""
-        lower = path.lower()
-        opener = gzip.open if lower.endswith(".gz") else open
-
-        if lower.endswith(".txt") or lower.endswith(".txt.gz"):
-            with opener(path, "rt", encoding="utf-8") as fin:
-                for line in fin:
-                    line = line.strip()
-                    if line:
-                        yield line
+        if suffix == ".txt":
+            for line in source:
+                line = line.strip()
+                if line:
+                    yield line
             return
 
-        if lower.endswith(".jsonl") or lower.endswith(".jsonl.gz"):
-            with opener(path, "rt", encoding="utf-8") as fin:
-                for line in fin:
-                    line = line.strip()
-                    if not line:
-                        continue
-                    record = json.loads(line)
-                    text = self._pick_text(record)
-                    if text:
-                        yield text
-            return
-
-        if lower.endswith(".json") or lower.endswith(".json.gz"):
-            with opener(path, "rt", encoding="utf-8") as fin:
-                payload = json.load(fin)
-            if isinstance(payload, dict):
-                if self.benchmark_text_key in payload:
-                    # a single record, e.g. {"text": "..."}
-                    payload = [payload]
-                else:
-                    # a wrapper object, e.g. {"data": [{...}, {...}]}
-                    records = []
-                    for value in payload.values():
-                        if isinstance(value, list):
-                            records.extend(value)
-                        else:
-                            records.append(value)
-                    payload = records
-            for record in payload:
-                text = self._pick_text(record)
+        if suffix == ".jsonl":
+            for line in source:
+                if not line.strip():
+                    continue
+                text = self._pick_text(json.loads(line))
                 if text:
                     yield text
             return
 
-        raise ValueError(
-            f"unsupported benchmark file format: {path!r}. Supported "
-            "formats are .jsonl, .json and .txt, optionally gzipped."
-        )
+        payload = json.load(source)
+        if isinstance(payload, dict):
+            if self.benchmark_text_key in payload:
+                # A single record, e.g. {"text": "..."}.
+                payload = [payload]
+            else:
+                # A wrapper object, e.g. {"data": [{...}, {...}]}.
+                records = []
+                for value in payload.values():
+                    if isinstance(value, list):
+                        records.extend(value)
+                    else:
+                        records.append(value)
+                payload = records
+        for record in payload:
+            text = self._pick_text(record)
+            if text:
+                yield text
 
     def _pick_text(self, record):
         """Extract the text to match from one benchmark record."""

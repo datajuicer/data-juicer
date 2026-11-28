@@ -4,6 +4,7 @@ import os
 import shutil
 import tempfile
 import unittest
+from unittest.mock import patch
 
 from data_juicer.core.data import NestedDataset as Dataset
 from data_juicer.ops.filter.benchmark_contamination_filter import (
@@ -169,6 +170,7 @@ class BenchmarkContaminationFilterTest(DataJuicerTestCaseBase):
             BenchmarkContaminationFilter(benchmark_path=self.bench_path, tokenization="sentence")
         with self.assertRaises(ValueError):
             BenchmarkContaminationFilter(benchmark_path=self.bench_path, ngram_size=0)
+
     def test_second_benchmark_does_not_reuse_stats(self):
         """Two benchmarks in one recipe must not share their stats fields.
 
@@ -185,9 +187,7 @@ class BenchmarkContaminationFilterTest(DataJuicerTestCaseBase):
             fout.write(json.dumps({"text": BENCH_EN}, ensure_ascii=False) + "\n")
 
         dataset = Dataset.from_list([{"text": BENCH_EN}])
-        dataset = dataset.add_column(
-            name=Fields.stats, column=[{}] * dataset.num_rows
-        )
+        dataset = dataset.add_column(name=Fields.stats, column=[{}] * dataset.num_rows)
 
         # benchmark A is unrelated: the sample is kept and its ratio is 0
         op_a = BenchmarkContaminationFilter(benchmark_path=bench_a)
@@ -210,6 +210,61 @@ class BenchmarkContaminationFilterTest(DataJuicerTestCaseBase):
 
         filtered = dataset.filter(op_b.process, batch_size=1)
         self.assertEqual(filtered.num_rows, 0)
+
+    def test_suite_scores_match_independent_filters(self):
+        other_path = os.path.join(self.tmp_dir, "science.txt")
+        with open(other_path, "w", encoding="utf-8") as fout:
+            fout.write(LONG_TAIL)
+
+        suites = {"math": self.bench_path, "science": other_path}
+        records = [{"text": text} for text in [BENCH_EN, LONG_TAIL, UNRELATED_ZH, ""]]
+        op = BenchmarkContaminationFilter(benchmark_suites=suites, threshold=0.5, auto_op_parallelism=False)
+        dataset = Dataset.from_list(records)
+        scored = op.run(dataset, reduce=False)
+        for row in scored:
+            stats = row[Fields.stats]
+            scores = stats["contamination_breakdown"]["suites"]
+            self.assertEqual(set(scores), set(suites))
+            for suite, path in suites.items():
+                single = BenchmarkContaminationFilter(benchmark_path=path)
+                expected = single.compute_stats_single({"text": row["text"], Fields.stats: {}})[Fields.stats]
+                self.assertEqual(
+                    scores[suite],
+                    {
+                        "ratio": expected["contamination_ratio"],
+                        "ngram_count": expected["contamination_ngram_count"],
+                    },
+                )
+            self.assertEqual(stats["contamination_ratio"], max(score["ratio"] for score in scores.values()))
+        self.assertEqual(op.run(dataset).select_columns("text").to_list(), records[2:])
+
+    def test_suite_hashes_once_and_refreshes_when_reference_changes(self):
+        opts = {"benchmark_suites": {"a": self.bench_path, "b": self.bench_path}}
+        op = BenchmarkContaminationFilter(**opts)
+        row = {"text": BENCH_EN, Fields.stats: {"contamination_ratio": 0.0}}
+        with patch.object(op, "_ngram_hashes", wraps=op._ngram_hashes) as hashes:
+            op.compute_stats_single(row)
+            op.compute_stats_single(row)
+            hashes.assert_called_once()
+        self.assertEqual(row[Fields.stats]["contamination_ratio"], 1.0)
+
+        with open(self.bench_path, "w", encoding="utf-8") as fout:
+            fout.write(json.dumps({"text": UNRELATED_ZH}) + "\n")
+        revised = BenchmarkContaminationFilter(**opts)
+        revised.compute_stats_single(row)
+        self.assertEqual(row[Fields.stats]["contamination_ratio"], 0.0)
+
+    def test_invalid_suite_settings_fail_early(self):
+        for sources in ({}, {"": self.bench_path}, {"broken": ""}):
+            with self.subTest(sources=sources), self.assertRaisesRegex(ValueError, "benchmark_suites"):
+                BenchmarkContaminationFilter(benchmark_suites=sources)
+        with self.assertRaisesRegex(ValueError, "mutually exclusive"):
+            BenchmarkContaminationFilter(benchmark_path=self.bench_path, benchmark_suites={"a": self.bench_path})
+        with self.assertRaisesRegex(ValueError, "distinct"):
+            BenchmarkContaminationFilter(
+                benchmark_suites={"a": self.bench_path},
+                contamination_breakdown_key="contamination_ratio",
+            )
 
 
 if __name__ == "__main__":

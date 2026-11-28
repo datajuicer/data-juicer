@@ -50,6 +50,8 @@ class BenchmarkContaminationFilter(Filter):
         contamination_ratio_key: str = StatsKeys.contamination_ratio,
         contamination_ngram_count_key: str = StatsKeys.contamination_ngram_count,
         *args,
+        benchmark_suites: dict[str, str] = None,
+        contamination_breakdown_key: str = "contamination_breakdown",
         **kwargs,
     ):
         """
@@ -99,6 +101,14 @@ class BenchmarkContaminationFilter(Filter):
             sample contaminated against its benchmark.
         :param contamination_ngram_count_key: the stats field that
             stores the number of matching n-grams.
+        :param benchmark_suites: optional mapping of suite names to reference
+            file paths. Mutually exclusive with benchmark_path. Each suite is
+            scored separately, using the same benchmark_text_key and
+            normalization settings. A row is dropped if any suite exceeds
+            threshold. The aggregate stats are the maximum ratio and hit
+            count across suites.
+        :param contamination_breakdown_key: stats field for per-suite scores
+            and the scoring signature in multi-suite mode.
         :param args: extra args
         :param kwargs: extra args
         """
@@ -119,8 +129,46 @@ class BenchmarkContaminationFilter(Filter):
         self.threshold = threshold
         self.contamination_ratio_key = contamination_ratio_key
         self.contamination_ngram_count_key = contamination_ngram_count_key
+        self.contamination_breakdown_key = contamination_breakdown_key
 
-        self._index = self._build_index(benchmark_path)
+        if benchmark_suites is None:
+            self._suites = None
+            self._index = self._build_index(benchmark_path)
+        else:
+            if benchmark_path:
+                raise ValueError("benchmark_path and benchmark_suites are mutually exclusive")
+            if (
+                not isinstance(benchmark_suites, dict)
+                or not benchmark_suites
+                or not all(
+                    isinstance(name, str) and name.strip() and isinstance(path, str) and path.strip()
+                    for name, path in benchmark_suites.items()
+                )
+            ):
+                raise ValueError("benchmark_suites must map nonempty suite names to nonempty file paths")
+            if len({contamination_ratio_key, contamination_ngram_count_key, contamination_breakdown_key}) != 3:
+                raise ValueError("multi-suite contamination stats keys must be distinct")
+            self._suites = [(name, self._build_index(benchmark_suites[name])) for name in sorted(benchmark_suites)]
+            self._suite_signature = self._scoring_signature()
+
+    def _scoring_signature(self):
+        """Identify the effective scoring configuration and reference indexes."""
+        digest = hashlib.sha256()
+        digest.update(
+            json.dumps(
+                [
+                    self.text_key,
+                    self.ngram_size,
+                    self.tokenization,
+                    self.lowercase,
+                    self.normalize_whitespace,
+                ]
+            ).encode("utf-8")
+        )
+        for name, index in self._suites:
+            digest.update(json.dumps([name, index.size]).encode("utf-8"))
+            digest.update(index.astype("<u8", copy=False))
+        return digest.hexdigest()
 
     # ---------------------------------------------------------------- #
     # index construction
@@ -279,19 +327,48 @@ class BenchmarkContaminationFilter(Filter):
         digest = hashlib.blake2b(text.encode("utf-8"), digest_size=8).digest()
         return int.from_bytes(digest, byteorder="big", signed=False)
 
-    def _count_hits(self, hashes):
+    @staticmethod
+    def _count_index_hits(index, hashes):
         """Count how many of the given hashes occur in the benchmark index."""
-        if self._index.size == 0 or hashes.size == 0:
+        if index.size == 0 or hashes.size == 0:
             return 0
         # binary search over the sorted index, O(k log N)
-        positions = np.searchsorted(self._index, hashes)
-        positions = np.clip(positions, 0, self._index.size - 1)
-        return int(np.count_nonzero(self._index[positions] == hashes))
+        positions = np.searchsorted(index, hashes)
+        positions = np.clip(positions, 0, index.size - 1)
+        return int(np.count_nonzero(index[positions] == hashes))
+
+    def _count_hits(self, hashes):
+        return self._count_index_hits(self._index, hashes)
+
+    def _compute_suite_stats(self, sample):
+        stats = sample[Fields.stats]
+        breakdown = stats.get(self.contamination_breakdown_key)
+        if (
+            isinstance(breakdown, dict)
+            and breakdown.get("signature") == self._suite_signature
+            and self.contamination_ratio_key in stats
+            and self.contamination_ngram_count_key in stats
+        ):
+            return sample
+
+        hashes = np.unique(self._ngram_hashes(self._normalize(sample.get(self.text_key))))
+        suite_scores = {}
+        max_hits = 0
+        for name, index in self._suites:
+            hits = self._count_index_hits(index, hashes)
+            suite_scores[name] = {"ngram_count": hits, "ratio": hits / hashes.size if hashes.size else 0.0}
+            max_hits = max(max_hits, hits)
+        stats[self.contamination_ratio_key] = max_hits / hashes.size if hashes.size else 0.0
+        stats[self.contamination_ngram_count_key] = max_hits
+        stats[self.contamination_breakdown_key] = {"signature": self._suite_signature, "suites": suite_scores}
+        return sample
 
     # ---------------------------------------------------------------- #
     # operator interface
     # ---------------------------------------------------------------- #
     def compute_stats_single(self, sample, context=False):
+        if self._suites is not None:
+            return self._compute_suite_stats(sample)
         # check if it's computed already
         if self.contamination_ratio_key in sample[Fields.stats]:
             return sample

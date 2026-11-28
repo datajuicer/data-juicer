@@ -254,6 +254,21 @@ class BenchmarkContaminationFilterTest(DataJuicerTestCaseBase):
         revised.compute_stats_single(row)
         self.assertEqual(row[Fields.stats]["contamination_ratio"], 0.0)
 
+    def test_suite_membership_crosses_uint64_block_boundary(self):
+        empty_path = os.path.join(self.tmp_dir, "empty.txt")
+        with open(empty_path, "w", encoding="utf-8"):
+            pass
+        matching = {"suite_00", "suite_07", "suite_31", "suite_63", "suite_64"}
+        suites = {f"suite_{idx:02d}": empty_path for idx in range(65)}
+        for name in matching:
+            suites[name] = self.bench_path
+        op = BenchmarkContaminationFilter(benchmark_suites=suites)
+        row = op.compute_stats_single({"text": BENCH_EN, Fields.stats: {}})[Fields.stats]
+        scores = row["contamination_breakdown"]["suites"]
+        self.assertEqual(list(scores), sorted(suites))
+        self.assertEqual({name for name, score in scores.items() if score["ratio"] == 1.0}, matching)
+        self.assertTrue(all(score["ngram_count"] == 0 for name, score in scores.items() if name not in matching))
+
     def test_invalid_suite_settings_fail_early(self):
         for sources in ({}, {"": self.bench_path}, {"broken": ""}):
             with self.subTest(sources=sources), self.assertRaisesRegex(ValueError, "benchmark_suites"):

@@ -15,6 +15,7 @@ from ..base_op import OPERATORS, Filter
 logger = logging.getLogger(__name__)
 
 OP_NAME = "benchmark_contamination_filter"
+SUITE_MASK_BITS = 64
 
 
 @OPERATORS.register_module(OP_NAME)
@@ -133,7 +134,7 @@ class BenchmarkContaminationFilter(Filter):
         self.contamination_breakdown_key = contamination_breakdown_key
 
         if benchmark_suites is None:
-            self._suites = None
+            self._suite_blocks = None
             self._index = self._build_index(benchmark_path)
         else:
             if benchmark_path:
@@ -149,10 +150,14 @@ class BenchmarkContaminationFilter(Filter):
                 raise ValueError("benchmark_suites must map nonempty suite names to nonempty file paths")
             if len({contamination_ratio_key, contamination_ngram_count_key, contamination_breakdown_key}) != 3:
                 raise ValueError("multi-suite contamination stats keys must be distinct")
-            self._suites = [(name, self._build_index(benchmark_suites[name])) for name in sorted(benchmark_suites)]
-            self._suite_signature = self._scoring_signature()
+            suites = [(name, self._build_index(benchmark_suites[name])) for name in sorted(benchmark_suites)]
+            self._suite_signature = self._scoring_signature(suites)
+            self._suite_blocks = [
+                self._merge_suite_indexes(suites[start : start + SUITE_MASK_BITS])
+                for start in range(0, len(suites), SUITE_MASK_BITS)
+            ]
 
-    def _scoring_signature(self):
+    def _scoring_signature(self, suites):
         """Identify the effective scoring configuration and reference indexes."""
         digest = hashlib.sha256()
         digest.update(
@@ -166,10 +171,25 @@ class BenchmarkContaminationFilter(Filter):
                 ]
             ).encode("utf-8")
         )
-        for name, index in self._suites:
+        for name, index in suites:
             digest.update(json.dumps([name, index.size]).encode("utf-8"))
             digest.update(index.astype("<u8", copy=False))
         return digest.hexdigest()
+
+    @staticmethod
+    def _merge_suite_indexes(suites):
+        """Store one sorted hash array and one membership mask per hash."""
+        names, indexes = zip(*suites)
+        if len(indexes) == 1:
+            return names, indexes[0], None
+        combined = np.unique(np.concatenate(indexes))
+        # Use the smallest integer type that fits this block's membership bits.
+        mask_dtype = np.min_scalar_type((1 << len(indexes)) - 1)
+        membership = np.zeros(combined.size, dtype=mask_dtype)
+        for bit, index in enumerate(indexes):
+            positions = np.searchsorted(combined, index)
+            membership[positions] |= mask_dtype.type(1 << bit)
+        return names, combined, membership
 
     # ---------------------------------------------------------------- #
     # index construction
@@ -329,17 +349,26 @@ class BenchmarkContaminationFilter(Filter):
         return int.from_bytes(digest, byteorder="big", signed=False)
 
     @staticmethod
-    def _count_index_hits(index, hashes):
-        """Count how many of the given hashes occur in the benchmark index."""
+    def _matched_positions(index, hashes):
         if index.size == 0 or hashes.size == 0:
-            return 0
+            return np.empty(0, dtype=np.intp)
         # binary search over the sorted index, O(k log N)
         positions = np.searchsorted(index, hashes)
         positions = np.clip(positions, 0, index.size - 1)
-        return int(np.count_nonzero(index[positions] == hashes))
+        return positions[index[positions] == hashes]
 
     def _count_hits(self, hashes):
-        return self._count_index_hits(self._index, hashes)
+        return self._matched_positions(self._index, hashes).size
+
+    def _count_suite_hits(self, hashes):
+        for names, index, membership in self._suite_blocks:
+            matched = self._matched_positions(index, hashes)
+            if membership is None:
+                yield names[0], matched.size
+                continue
+            masks = membership[matched]
+            for bit, name in enumerate(names):
+                yield name, np.count_nonzero(masks & membership.dtype.type(1 << bit))
 
     def _compute_suite_stats(self, sample):
         stats = sample[Fields.stats]
@@ -358,8 +387,7 @@ class BenchmarkContaminationFilter(Filter):
         hashes = np.unique(self._ngram_hashes(text))
         suite_scores = {}
         max_hits = 0
-        for name, index in self._suites:
-            hits = self._count_index_hits(index, hashes)
+        for name, hits in self._count_suite_hits(hashes):
             suite_scores[name] = {"ngram_count": hits, "ratio": hits / hashes.size if hashes.size else 0.0}
             max_hits = max(max_hits, hits)
         stats[self.contamination_ratio_key] = max_hits / hashes.size if hashes.size else 0.0
@@ -375,7 +403,7 @@ class BenchmarkContaminationFilter(Filter):
     # operator interface
     # ---------------------------------------------------------------- #
     def compute_stats_single(self, sample, context=False):
-        if self._suites is not None:
+        if self._suite_blocks is not None:
             return self._compute_suite_stats(sample)
         # check if it's computed already
         if self.contamination_ratio_key in sample[Fields.stats]:

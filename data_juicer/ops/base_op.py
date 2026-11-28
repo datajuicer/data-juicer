@@ -658,6 +658,7 @@ class OP(metaclass=OPMetaClass):
             isinstance(self, Filter)
             and self._name not in NON_STATS_FILTERS.modules
             and Fields.stats not in dataset.features
+            and not self._creates_stats_column()
         ):
             dataset = dataset.map(
                 add_same_content_to_new_column,
@@ -904,6 +905,10 @@ class Filter(OP):
         if self.reversed_range:
             res_bool = not res_bool
         return res_bool
+
+    def _creates_stats_column(self):
+        """Whether compute_stats can create the stats column in its own map."""
+        return False
 
     def compute_stats_batched(self, samples, *args, **kwargs):
         keys = samples.keys()

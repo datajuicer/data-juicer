@@ -301,6 +301,32 @@ class BenchmarkContaminationFilterTest(DataJuicerTestCaseBase):
             self.assertEqual(batched.run(dataset, reduce=False).to_list(), scalar.run(dataset, reduce=False).to_list())
         self.assertEqual(batched.run(dataset).to_list(), scalar.run(dataset).to_list())
 
+    def test_batched_run_adds_missing_stats_without_an_extra_map(self):
+        options = {
+            "benchmark_suites": {"a": self.bench_path, "b": self.bench_path},
+            "auto_op_parallelism": False,
+            "num_proc": None,
+        }
+        records = [
+            {"row_id": 1, "text": BENCH_EN},
+            {"row_id": 2, "text": UNRELATED_EN},
+            {"row_id": 3, "text": BENCH_ZH},
+        ]
+        dataset = Dataset.from_list(records).select([2, 0, 1])
+        scalar = BenchmarkContaminationFilter(**options, batch_mode=False)
+        expected = scalar.run(dataset, reduce=False).to_list()
+        descriptions = []
+        original_map = Dataset.map
+
+        def track_map(instance, *args, **kwargs):
+            descriptions.append(kwargs.get("desc"))
+            return original_map(instance, *args, **kwargs)
+
+        with patch.object(Dataset, "map", track_map):
+            batched = BenchmarkContaminationFilter(**options)
+            self.assertEqual(batched.run(dataset, reduce=False).to_list(), expected)
+        self.assertEqual(descriptions, ["benchmark_contamination_filter_compute_stats"])
+
     def test_invalid_suite_settings_fail_early(self):
         for sources in ({}, {"": self.bench_path}, {"broken": ""}):
             with self.subTest(sources=sources), self.assertRaisesRegex(ValueError, "benchmark_suites"):

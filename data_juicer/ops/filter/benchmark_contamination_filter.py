@@ -444,9 +444,16 @@ class BenchmarkContaminationFilter(Filter):
     # ---------------------------------------------------------------- #
     # operator interface
     # ---------------------------------------------------------------- #
+    def _creates_stats_column(self):
+        return self._suite_blocks is not None and self.is_batched_op()
+
     def compute_stats_batched(self, samples, context=False):
         if self._suite_blocks is None:
             return super().compute_stats_batched(samples, context=context)
+        if Fields.stats not in samples:
+            # Create empty stats in this batch. A separate map starts another
+            # process pool for the local multi-worker executor.
+            samples[Fields.stats] = [{} for _ in range(len(next(iter(samples.values()))))]
         stats_column = samples[Fields.stats]
         texts = samples.get(self.text_key)
         if texts is None:

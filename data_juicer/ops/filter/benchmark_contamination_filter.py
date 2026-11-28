@@ -108,7 +108,8 @@ class BenchmarkContaminationFilter(Filter):
             threshold. The aggregate stats are the maximum ratio and hit
             count across suites.
         :param contamination_breakdown_key: stats field for per-suite scores
-            and the scoring signature in multi-suite mode.
+            and fingerprints of the scoring configuration and normalized
+            input text in multi-suite mode.
         :param args: extra args
         :param kwargs: extra args
         """
@@ -342,16 +343,19 @@ class BenchmarkContaminationFilter(Filter):
 
     def _compute_suite_stats(self, sample):
         stats = sample[Fields.stats]
+        text = self._normalize(sample.get(self.text_key))
+        text_signature = hashlib.sha256(text.encode("utf-8")).hexdigest()
         breakdown = stats.get(self.contamination_breakdown_key)
         if (
             isinstance(breakdown, dict)
             and breakdown.get("signature") == self._suite_signature
+            and breakdown.get("text_signature") == text_signature
             and self.contamination_ratio_key in stats
             and self.contamination_ngram_count_key in stats
         ):
             return sample
 
-        hashes = np.unique(self._ngram_hashes(self._normalize(sample.get(self.text_key))))
+        hashes = np.unique(self._ngram_hashes(text))
         suite_scores = {}
         max_hits = 0
         for name, index in self._suites:
@@ -360,7 +364,11 @@ class BenchmarkContaminationFilter(Filter):
             max_hits = max(max_hits, hits)
         stats[self.contamination_ratio_key] = max_hits / hashes.size if hashes.size else 0.0
         stats[self.contamination_ngram_count_key] = max_hits
-        stats[self.contamination_breakdown_key] = {"signature": self._suite_signature, "suites": suite_scores}
+        stats[self.contamination_breakdown_key] = {
+            "signature": self._suite_signature,
+            "text_signature": text_signature,
+            "suites": suite_scores,
+        }
         return sample
 
     # ---------------------------------------------------------------- #

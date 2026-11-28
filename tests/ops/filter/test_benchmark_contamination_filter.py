@@ -266,6 +266,26 @@ class BenchmarkContaminationFilterTest(DataJuicerTestCaseBase):
                 contamination_breakdown_key="contamination_ratio",
             )
 
+    def test_suite_stats_refresh_after_text_rewrite(self):
+        op = BenchmarkContaminationFilter(
+            benchmark_suites={"math": self.bench_path},
+            threshold=0.5,
+            auto_op_parallelism=False,
+            num_proc=None,
+        )
+        clean = Dataset.from_list([{"text": UNRELATED_EN}])
+        scored = op.run(clean, reduce=False)
+        self.assertEqual(scored[0][Fields.stats]["contamination_ratio"], 0.0)
+        rewritten = scored.map(lambda _: {"text": BENCH_EN})
+        rescored = op.run(rewritten, reduce=False)
+        self.assertEqual(rescored[0][Fields.stats]["contamination_ratio"], 1.0)
+        self.assertEqual(len(op.run(rewritten)), 0)
+
+        normalized_equivalent = dict(rescored[0])
+        normalized_equivalent["text"] = "  " + BENCH_EN.upper() + "  "
+        with patch.object(op, "_ngram_hashes", side_effect=AssertionError("unexpected recomputation")):
+            op.compute_stats_single(normalized_equivalent)
+
 
 if __name__ == "__main__":
     unittest.main()
